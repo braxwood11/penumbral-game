@@ -40,6 +40,7 @@ class CardNode: SKSpriteNode {
         }
     }
     
+    
     init(card: Card) {
         self.card = card
         super.init(texture: nil, color: .clear, size: CGSize(width: 80, height: 115))
@@ -703,6 +704,7 @@ class GameScene: SKScene {
     override func didMove(to view: SKView) {
         setupUI()
         updateUI()
+        setupTutorial()
     }
     
     private func setupUI() {
@@ -1031,8 +1033,14 @@ class GameScene: SKScene {
         updateUsePowerButton()
     }
     
+
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // Check for tutorial touches first
+        if handleTutorialTouch(touches, with: event) {
+            return
+        }
+        
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
         
@@ -1090,6 +1098,7 @@ class GameScene: SKScene {
             addChild(overlay)
             overlay.run(SKAction.fadeIn(withDuration: 0.3))
         }
+        notifyTutorialHelpUsed()
     }
 
     private func hideReferenceOverlay() {
@@ -1122,6 +1131,8 @@ class GameScene: SKScene {
                     }
                 }
             }
+        
+        notifyTutorialFirstCardSelected()
         }
         
         private func handleSecondCardTouch(at location: CGPoint) {
@@ -1216,6 +1227,7 @@ class GameScene: SKScene {
             gameState.player.bankedPower = nil
             updateUI(animate: false)
             updateUsePowerButton()
+        notifyTutorialBankUsed()
         }
     
     
@@ -1592,6 +1604,7 @@ class GameScene: SKScene {
             // Update UI
             updateUI()
             updateUsePowerButton()
+            notifyTutorialNextRound()
         }
     }
 
@@ -1909,6 +1922,8 @@ class GameScene: SKScene {
             }
             
             updateUsePowerButton()
+        notifyTutorialSecondCardSelected()
+        
         }
     
     private func showEffectAnimation(_ text: String, color: SKColor) {
