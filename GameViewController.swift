@@ -29,6 +29,21 @@ class GameViewController: UIViewController {
         }
     }
     
+    func startExplorationMode() {
+        print("Starting exploration mode")
+        
+        // Create and present the exploration view controller
+        let explorationVC = ExplorationViewController()
+        
+        // Ensure proper modal presentation
+        explorationVC.modalPresentationStyle = .fullScreen
+        explorationVC.modalTransitionStyle = .crossDissolve
+        
+        present(explorationVC, animated: true) {
+            print("Exploration mode presented")
+        }
+    }
+    
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
         return .portrait
     }

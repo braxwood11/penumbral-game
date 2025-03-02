@@ -789,6 +789,26 @@ class GameScene: SKScene {
         faceUpArea.position = CGPoint(x: size.width/2, y: size.height/2)
         addChild(faceUpArea)
         
+        // Exploration Button (circle with "E")
+        let exploreButton = SKShapeNode(circleOfRadius: 15)
+        exploreButton.fillColor = CardNode.getFontColor(for: .night) // Use Night color for distinction
+        exploreButton.strokeColor = .white
+        exploreButton.lineWidth = 2
+        exploreButton.position = CGPoint(x: 80, y: size.height - 40) // Position next to the help button
+        exploreButton.name = "exploreButton"
+        addChild(exploreButton)
+
+        // Add "E" label
+        let exploreLabel = SKLabelNode(fontNamed: "Copperplate")
+        exploreLabel.text = "E"
+        exploreLabel.fontSize = 14
+        exploreLabel.fontColor = .white
+        exploreLabel.verticalAlignmentMode = .center
+        exploreLabel.horizontalAlignmentMode = .center
+        exploreLabel.position = exploreButton.position
+        exploreLabel.name = "exploreButtonLabel"
+        addChild(exploreLabel)
+        
         setupHelpButton()
     }
     
@@ -1078,6 +1098,13 @@ class GameScene: SKScene {
            powerButton.alpha > 0,
            powerButton.contains(location) {
             useBankedPower()
+            return
+        }
+        
+        if let button = childNode(withName: "exploreButton"), button.contains(location) {
+            if let viewController = self.view?.window?.rootViewController as? GameViewController {
+                viewController.startExplorationMode()
+            }
             return
         }
         
