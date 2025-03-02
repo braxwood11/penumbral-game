@@ -14,6 +14,8 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
     private var handView: ExplorationHandView!
     private var targetableNodes: [String] = []
     private var returnButton: SKNode!
+    private var helpButton: SKNode!
+    private var isMiniMapVisible = false
     
     // Override initialization to include exploration deck
     init(size: CGSize, celestialRealm: CelestialRealm, explorationDeck: ExplorationDeck) {
@@ -35,19 +37,26 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         // Set up the hand view
         setupExplorationHand()
         
-        // Add return button
+        // Add navigation features
+        setupMiniMap()
+        setupLegend()
         setupReturnButton()
-        
-        // Add zoom controls
-        setupZoomControls()
+        setupHelpButton()
 
         // Apply initial zoom - start with the world a bit more zoomed in
-            if let container = childNode(withName: "worldContainer") {
-                // Scale the world container to make everything bigger at start
-                // This value should be adjusted based on testing
-                container.setScale(1.3) // Start 30% larger than default
-            }
-
+        if let container = childNode(withName: "worldContainer") {
+            // Scale the world container to make everything bigger at start
+            container.setScale(1.3)
+            // Update currentScale to match
+            currentScale = 1.3
+            // Update node sizing for this scale
+            updateNodeSizing()
+        }
+        
+        // Focus on current node
+        if let currentNode = celestialRealm.nodes.first(where: { $0.id == celestialRealm.currentNodeID }) {
+            centerOn(nodeID: currentNode.id)
+        }
     }
     
     private func setupExplorationHand() {
@@ -56,10 +65,192 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         handView.position = CGPoint(x: size.width/2, y: 100)
         handView.delegate = self
         handView.zPosition = 1000
+        
+        // Add background panel for hand view
+        let handBg = SKShapeNode(rectOf: CGSize(width: size.width - 40, height: 200), cornerRadius: 15)
+        handBg.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.7)
+        handBg.strokeColor = SKColor(red: 0.3, green: 0.3, blue: 0.5, alpha: 1.0)
+        handBg.lineWidth = 2
+        handBg.position = handView.position
+        handBg.zPosition = 990
+        addChild(handBg)
+        
         addChild(handView)
         
         // Update with current cards
         updateHandView()
+    }
+    
+    private func setupMiniMap() {
+        // Create a minimap in the corner
+        let miniMapNode = SKNode()
+        miniMapNode.name = "miniMap"
+        miniMapNode.zPosition = 1100
+        miniMapNode.alpha = 0 // Start hidden
+        
+        // Minimap background
+        let mapSize = CGSize(width: 150, height: 150)
+        let mapBg = SKShapeNode(rectOf: mapSize, cornerRadius: 10)
+        mapBg.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.8)
+        mapBg.strokeColor = .white
+        mapBg.lineWidth = 1
+        miniMapNode.addChild(mapBg)
+        
+        // Create a miniature version of the map
+        let miniWorldContainer = SKNode()
+        miniWorldContainer.name = "miniWorldContainer"
+        
+        // Dawn realm
+        let dawnCircle = SKShapeNode(circleOfRadius: dawnRadius * 0.15)
+        dawnCircle.strokeColor = Realm.dawn.color
+        dawnCircle.fillColor = Realm.dawn.color.withAlphaComponent(0.2)
+        dawnCircle.lineWidth = 1
+        miniWorldContainer.addChild(dawnCircle)
+        
+        // Dusk realm
+        let duskCircle = SKShapeNode(circleOfRadius: duskRadius * 0.15)
+        duskCircle.strokeColor = Realm.dusk.color
+        duskCircle.fillColor = Realm.dusk.color.withAlphaComponent(0.2)
+        duskCircle.lineWidth = 1
+        miniWorldContainer.addChild(duskCircle)
+        
+        // Night realm
+        let nightCircle = SKShapeNode(circleOfRadius: nightRadius * 0.15)
+        nightCircle.strokeColor = Realm.night.color
+        nightCircle.fillColor = Realm.night.color.withAlphaComponent(0.2)
+        nightCircle.lineWidth = 1
+        miniWorldContainer.addChild(nightCircle)
+        
+        // Add node dots for revealed nodes
+        for node in celestialRealm.nodes where node.isRevealed {
+            let dot = SKShapeNode(circleOfRadius: 2)
+            dot.fillColor = node.realm.color
+            dot.strokeColor = .clear
+            
+            // Scale position for minimap
+            dot.position = CGPoint(x: node.position.x * 0.15, y: node.position.y * 0.15)
+            
+            // Highlight current position
+            if node.id == celestialRealm.currentNodeID {
+                dot.fillColor = .white
+                dot.strokeColor = node.realm.color
+                dot.lineWidth = 1
+            }
+            
+            miniWorldContainer.addChild(dot)
+        }
+        
+        miniMapNode.addChild(miniWorldContainer)
+        
+        // Add viewport indicator
+        let viewport = SKShapeNode(rectOf: CGSize(width: 60, height: 60), cornerRadius: 5)
+        viewport.strokeColor = .white
+        viewport.fillColor = .clear
+        viewport.lineWidth = 1
+        viewport.alpha = 0.7
+        viewport.name = "viewport"
+        miniWorldContainer.addChild(viewport)
+        
+        // Button to toggle minimap
+        let toggleButton = SKShapeNode(circleOfRadius: 15)
+        toggleButton.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
+        toggleButton.strokeColor = .white
+        toggleButton.lineWidth = 1
+        toggleButton.position = CGPoint(x: -mapSize.width/2 + 20, y: mapSize.height/2 - 20)
+        toggleButton.name = "toggleMiniMap"
+        miniMapNode.addChild(toggleButton)
+        
+        let toggleLabel = SKLabelNode(fontNamed: "Copperplate")
+        toggleLabel.text = "×"
+        toggleLabel.fontSize = 18
+        toggleLabel.fontColor = .white
+        toggleLabel.verticalAlignmentMode = .center
+        toggleLabel.horizontalAlignmentMode = .center
+        toggleLabel.position = toggleButton.position
+        miniMapNode.addChild(toggleLabel)
+        
+        // Position minimap in top-right corner
+        miniMapNode.position = CGPoint(x: size.width - 90, y: size.height - 90)
+        addChild(miniMapNode)
+        
+        // Add minimap toggle button to main UI
+        let mapButton = SKShapeNode(circleOfRadius: 15)
+        mapButton.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
+        mapButton.strokeColor = .white
+        mapButton.lineWidth = 1
+        mapButton.position = CGPoint(x: size.width - 40, y: size.height - 40)
+        mapButton.name = "showMiniMap"
+        
+        let mapLabel = SKLabelNode(fontNamed: "Copperplate")
+        mapLabel.text = "M"
+        mapLabel.fontSize = 16
+        mapLabel.fontColor = .white
+        mapLabel.verticalAlignmentMode = .center
+        mapLabel.horizontalAlignmentMode = .center
+        mapLabel.position = mapButton.position
+        
+        addChild(mapButton)
+        addChild(mapLabel)
+    }
+    
+    private func setupLegend() {
+        // Create a legend for realm colors
+        let legendNode = SKNode()
+        legendNode.name = "legend"
+        legendNode.zPosition = 1000
+        
+        // Legend background
+        let legendBg = SKShapeNode(rectOf: CGSize(width: 140, height: 100), cornerRadius: 8)
+        legendBg.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.8)
+        legendBg.strokeColor = .white
+        legendBg.lineWidth = 1
+        legendNode.addChild(legendBg)
+        
+        // Title
+        let title = SKLabelNode(fontNamed: "Copperplate")
+        title.text = "Realms"
+        title.fontSize = 14
+        title.fontColor = .white
+        title.verticalAlignmentMode = .center
+        title.position = CGPoint(x: 0, y: 35)
+        legendNode.addChild(title)
+        
+        // Dawn realm
+        createLegendItem(realm: .dawn, position: CGPoint(x: 0, y: 15), parent: legendNode)
+        
+        // Dusk realm
+        createLegendItem(realm: .dusk, position: CGPoint(x: 0, y: -5), parent: legendNode)
+        
+        // Night realm
+        createLegendItem(realm: .night, position: CGPoint(x: 0, y: -25), parent: legendNode)
+        
+        // Position legend in bottom-left
+        legendNode.position = CGPoint(x: 90, y: 70)
+        addChild(legendNode)
+    }
+    
+    private func createLegendItem(realm: Realm, position: CGPoint, parent: SKNode) {
+        let itemNode = SKNode()
+        
+        // Color circle
+        let circle = SKShapeNode(circleOfRadius: 6)
+        circle.fillColor = realm.color
+        circle.strokeColor = .white
+        circle.lineWidth = 1
+        circle.position = CGPoint(x: -50, y: position.y)
+        itemNode.addChild(circle)
+        
+        // Label
+        let label = SKLabelNode(fontNamed: "Copperplate")
+        label.text = realm.rawValue.capitalized
+        label.fontSize = 12
+        label.fontColor = .white
+        label.verticalAlignmentMode = .center
+        label.horizontalAlignmentMode = .left
+        label.position = CGPoint(x: -40, y: position.y)
+        itemNode.addChild(label)
+        
+        parent.addChild(itemNode)
     }
     
     private func setupReturnButton() {
@@ -78,8 +269,7 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         returnButton = SKNode()
         returnButton.addChild(buttonBackground)
         returnButton.addChild(buttonLabel)
-        // Position much lower on screen (was 30px from top)
-        returnButton.position = CGPoint(x: size.width - 90, y: size.height - 80)
+        returnButton.position = CGPoint(x: size.width - 90, y: size.height - 140)
         returnButton.name = "returnButton"
         returnButton.zPosition = 1100
         addChild(returnButton)
@@ -91,54 +281,86 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         ])
         returnButton.run(SKAction.repeatForever(pulse))
     }
-
-    private func setupZoomControls() {
-        // Position zoom controls lower on the screen
+    
+    private func setupHelpButton() {
+        // Create a help button
+        let buttonSize: CGFloat = 30
+        let helpBg = SKShapeNode(circleOfRadius: buttonSize/2)
+        helpBg.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
+        helpBg.strokeColor = .white
+        helpBg.lineWidth = 2
         
-        // Add zoom in button - moved down 50px
-        let zoomInButton = SKShapeNode(circleOfRadius: 20)
-        zoomInButton.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
-        zoomInButton.strokeColor = .white
-        zoomInButton.lineWidth = 2
-        zoomInButton.position = CGPoint(x: 40, y: size.height - 90) // Changed from 40 to 90
-        zoomInButton.name = "zoomInButton"
-        zoomInButton.zPosition = 1100
+        let helpLabel = SKLabelNode(fontNamed: "Copperplate")
+        helpLabel.text = "?"
+        helpLabel.fontSize = 18
+        helpLabel.fontColor = .white
+        helpLabel.verticalAlignmentMode = .center
+        helpLabel.horizontalAlignmentMode = .center
         
-        let zoomInLabel = SKLabelNode(fontNamed: "Copperplate")
-        zoomInLabel.text = "+"
-        zoomInLabel.fontSize = 24
-        zoomInLabel.fontColor = .white
-        zoomInLabel.verticalAlignmentMode = .center
-        zoomInLabel.horizontalAlignmentMode = .center
-        zoomInLabel.position = zoomInButton.position
-        zoomInLabel.zPosition = 1100
-        
-        // Add zoom out button - moved down 50px
-        let zoomOutButton = SKShapeNode(circleOfRadius: 20)
-        zoomOutButton.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
-        zoomOutButton.strokeColor = .white
-        zoomOutButton.lineWidth = 2
-        zoomOutButton.position = CGPoint(x: 40, y: size.height - 140) // Changed from 90 to 140
-        zoomOutButton.name = "zoomOutButton"
-        zoomOutButton.zPosition = 1100
-        
-        let zoomOutLabel = SKLabelNode(fontNamed: "Copperplate")
-        zoomOutLabel.text = "−"
-        zoomOutLabel.fontSize = 24
-        zoomOutLabel.fontColor = .white
-        zoomOutLabel.verticalAlignmentMode = .center
-        zoomOutLabel.horizontalAlignmentMode = .center
-        zoomOutLabel.position = zoomOutButton.position
-        zoomOutLabel.zPosition = 1100
-        
-        addChild(zoomInButton)
-        addChild(zoomInLabel)
-        addChild(zoomOutButton)
-        addChild(zoomOutLabel)
+        helpButton = SKNode()
+        helpButton.addChild(helpBg)
+        helpButton.addChild(helpLabel)
+        helpButton.position = CGPoint(x: size.width - 160, y: size.height - 40)
+        helpButton.name = "helpButton"
+        helpButton.zPosition = 1100
+        addChild(helpButton)
     }
     
     private func updateHandView() {
         handView.updateWithCards(explorationDeck.hand)
+    }
+    
+    private func updateMiniMap() {
+        guard let miniMap = childNode(withName: "miniMap"),
+              let miniWorld = miniMap.childNode(withName: "miniWorldContainer") else { return }
+        
+        // Remove old node dots
+        miniWorld.children.forEach { child in
+            if child.name != "viewport" && !child.name!.contains("Circle") {
+                child.removeFromParent()
+            }
+        }
+        
+        // Add updated node dots
+        for node in celestialRealm.nodes where node.isRevealed {
+            let dot = SKShapeNode(circleOfRadius: 2)
+            dot.fillColor = node.realm.color
+            dot.strokeColor = .clear
+            
+            // Scale position for minimap
+            dot.position = CGPoint(x: node.position.x * 0.15, y: node.position.y * 0.15)
+            
+            // Highlight current position
+            if node.id == celestialRealm.currentNodeID {
+                dot.fillColor = .white
+                dot.strokeColor = node.realm.color
+                dot.lineWidth = 1
+            }
+            
+            miniWorld.addChild(dot)
+        }
+        
+        // Update viewport indicator position based on current view
+        if let viewport = miniWorld.childNode(withName: "viewport") as? SKShapeNode {
+            // Calculate visible region
+            let visibleWidth = size.width / currentScale
+            let visibleHeight = size.height / currentScale
+            
+            // Scale for minimap
+            let scaledWidth = visibleWidth * 0.15
+            let scaledHeight = visibleHeight * 0.15
+            
+            // Update viewport size
+            viewport.path = CGPath(rect: CGRect(x: -scaledWidth/2, y: -scaledHeight/2,
+                                             width: scaledWidth, height: scaledHeight),
+                                cornerWidth: 5, cornerHeight: 5, transform: nil)
+            
+            // Calculate offset from center
+            let worldCenter = convert(CGPoint(x: size.width/2, y: size.height/2), to: worldContainer)
+            let scaledOffset = CGPoint(x: -worldCenter.x * 0.15, y: -worldCenter.y * 0.15)
+            
+            viewport.position = scaledOffset
+        }
     }
     
     // MARK: - ExplorationHandDelegate
@@ -163,81 +385,7 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         targetableNodes.removeAll()
     }
     
-    // MARK: - Touch Handling
-    
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        let location = touch.location(in: self)
-        
-        // Check if return button was tapped
-        if let returnButton = childNode(withName: "returnButton"), returnButton.contains(location) {
-            dismissExploration()
-            return
-        }
-        
-        // Check for zoom controls
-        if let zoomInButton = childNode(withName: "zoomInButton"), zoomInButton.contains(location) {
-            handleZoomIn()
-            return
-        }
-        
-        if let zoomOutButton = childNode(withName: "zoomOutButton"), zoomOutButton.contains(location) {
-            handleZoomOut()
-            return
-        }
-        
-        // Check for touches on the hand first
-        if handView.handleTouch(at: handView.convert(location, from: self)) {
-            return
-        }
-        
-        // If we're in targeting mode, check for node selection
-        if !targetableNodes.isEmpty, let selectedCardIndex = handView.getSelectedCardIndex() {
-            // Check if a targetable node was touched
-            for (nodeID, sprite) in nodeSprites {
-                if sprite.contains(location) && targetableNodes.contains(nodeID) {
-                    // Play the card targeting this node
-                    playCard(at: selectedCardIndex, targetingNode: nodeID)
-                    return
-                }
-            }
-            
-            // If touched outside of targetable nodes, exit targeting mode
-            handView.exitTargetingMode()
-            clearNodeHighlights()
-            targetableNodes.removeAll()
-            return
-        }
-        
-        // Otherwise, pass the touch to the parent implementation
-        super.touchesBegan(touches, with: event)
-    }
-    
-    // MARK: - Zoom Handling
-    
-    private func handleZoomIn() {
-        // Scale up all node layers by 10%
-        let scaleAction = SKAction.scale(by: 1.1, duration: 0.3)
-        
-        backgroundLayer.run(scaleAction)
-        dawnLayer.run(scaleAction)
-        duskLayer.run(scaleAction)
-        nightLayer.run(scaleAction)
-        connectionLayer.run(scaleAction)
-    }
-    
-    private func handleZoomOut() {
-        // Scale down all node layers by 10%
-        let scaleAction = SKAction.scale(by: 0.9, duration: 0.3)
-        
-        backgroundLayer.run(scaleAction)
-        dawnLayer.run(scaleAction)
-        duskLayer.run(scaleAction)
-        nightLayer.run(scaleAction)
-        connectionLayer.run(scaleAction)
-    }
-    
-    // MARK: - Targeting Visualization
+    // MARK: - Highlighting
     
     private func highlightTargetableNodes() {
         // Clear any existing highlights
@@ -271,6 +419,78 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         }
     }
     
+    // MARK: - Touch Handling
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        
+        // Check if return button was tapped
+        if let returnButton = childNode(withName: "returnButton"), returnButton.contains(location) {
+            dismissExploration()
+            return
+        }
+        
+        // Check if help button was tapped
+        if let helpButton = childNode(withName: "helpButton"), helpButton.contains(location) {
+            showHelpOverlay()
+            return
+        }
+        
+        // Check if minimap toggle was tapped
+        if let mapButton = childNode(withName: "showMiniMap"), mapButton.contains(location) {
+            toggleMiniMap()
+            return
+        }
+        
+        // Check if minimap close button was tapped
+        if isMiniMapVisible, let miniMap = childNode(withName: "miniMap"),
+           let toggleButton = miniMap.childNode(withName: "toggleMiniMap"),
+           toggleButton.contains(miniMap.convert(location, from: self)) {
+            toggleMiniMap()
+            return
+        }
+        
+        // Check for zoom controls
+        if let zoomInButton = childNode(withName: "zoomInButton"), zoomInButton.contains(location) {
+            handleZoomIn()
+            return
+        }
+        
+        if let zoomOutButton = childNode(withName: "zoomOutButton"), zoomOutButton.contains(location) {
+            handleZoomOut()
+            return
+        }
+        
+        // Check for touches on the hand first
+        if handView.handleTouch(at: handView.convert(location, from: self)) {
+            return
+        }
+        
+        // If we're in targeting mode, check for node selection
+        if !targetableNodes.isEmpty, let selectedCardIndex = handView.getSelectedCardIndex() {
+            // Check if a targetable node was touched
+            let worldLocation = touch.location(in: worldContainer)
+            
+            for (nodeID, sprite) in nodeSprites {
+                if sprite.contains(sprite.convert(worldLocation, from: worldContainer)) && targetableNodes.contains(nodeID) {
+                    // Play the card targeting this node
+                    playCard(at: selectedCardIndex, targetingNode: nodeID)
+                    return
+                }
+            }
+            
+            // If touched outside of targetable nodes, exit targeting mode
+            handView.exitTargetingMode()
+            clearNodeHighlights()
+            targetableNodes.removeAll()
+            return
+        }
+        
+        // Otherwise, pass the touch to the parent implementation
+        super.touchesBegan(touches, with: event)
+    }
+    
     // MARK: - Card Playing
     
     private func playCard(at index: Int, targetingNode nodeID: String) {
@@ -285,6 +505,7 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
                 
                 // Update the visualization
                 updateVisualization()
+                updateMiniMap()
                 
                 // Show effect animation
                 animateCardEffect(card, targetNodeID: nodeID)
@@ -488,45 +709,154 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         }
     }
     
+    private func showHelpOverlay() {
+        // Create help overlay
+        let overlay = SKNode()
+        overlay.name = "helpOverlay"
+        overlay.zPosition = 2000
+        
+        // Background
+        let bg = SKShapeNode(rect: CGRect(x: 0, y: 0, width: size.width, height: size.height))
+        bg.fillColor = SKColor.black.withAlphaComponent(0.7)
+        bg.strokeColor = .clear
+        overlay.addChild(bg)
+        
+        // Content panel
+        let panel = SKShapeNode(rectOf: CGSize(width: size.width - 80, height: size.height - 120), cornerRadius: 15)
+        panel.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.9)
+        panel.strokeColor = .white
+        panel.lineWidth = 2
+        panel.position = CGPoint(x: size.width/2, y: size.height/2)
+        overlay.addChild(panel)
+        
+        // Title
+        let title = SKLabelNode(fontNamed: "Copperplate")
+        title.text = "Exploration Help"
+        title.fontSize = 28
+        title.fontColor = .white
+        title.position = CGPoint(x: size.width/2, y: size.height - 80)
+        overlay.addChild(title)
+        
+        // Help content
+        let helpText = [
+            "Navigation:",
+            "• Drag to pan the map",
+            "• Pinch to zoom in and out",
+            "• Tap a node to view details or travel there",
+            "",
+            "Exploration Cards:",
+            "• Path cards let you move to connected nodes",
+            "• Jump cards move you to specific realm nodes",
+            "• Reveal cards uncover hidden areas",
+            "• Phase cards shift the realm phase",
+            "",
+            "Realms:",
+            "• Dawn: Inner realm, balanced encounters",
+            "• Dusk: Middle realm, moderate challenge",
+            "• Night: Outer realm, highest risk/reward",
+            "",
+            "Node Types:",
+            "• Battle: Test your deck against opponents",
+            "• Card Refinery: Upgrade your cards",
+            "• Narrative: Learn the story and lore",
+            "• Shop: Purchase new cards and items",
+            "• Mystery: Unknown effects until visited",
+            "• Nexus: Central hub and travel point"
+        ]
+        
+        // Create scrollable content
+        let contentNode = SKNode()
+        var yPosition: CGFloat = panel.frame.height/2 - 60
+        let lineHeight: CGFloat = 26
+        
+        for (index, line) in helpText.enumerated() {
+            let lineLabel = SKLabelNode(fontNamed: "Copperplate")
+            lineLabel.text = line
+            lineLabel.fontSize = 18
+            lineLabel.fontColor = .white
+            lineLabel.horizontalAlignmentMode = .left
+            lineLabel.verticalAlignmentMode = .center
+            lineLabel.position = CGPoint(x: -panel.frame.width/2 + 40, y: yPosition)
+            
+            // Make headers bolder
+            if line.hasSuffix(":") {
+                lineLabel.fontColor = SKColor(red: 0.9, green: 0.9, blue: 0.3, alpha: 1.0)
+                lineLabel.fontSize = 20
+            }
+            
+            contentNode.addChild(lineLabel)
+            yPosition -= lineHeight
+        }
+        
+        panel.addChild(contentNode)
+        
+        // Close button
+        let closeButton = SKShapeNode(circleOfRadius: 20)
+        closeButton.fillColor = SKColor(red: 0.8, green: 0.2, blue: 0.2, alpha: 0.8)
+        closeButton.strokeColor = .white
+        closeButton.lineWidth = 2
+        closeButton.position = CGPoint(x: size.width - 60, y: size.height - 60)
+        closeButton.name = "closeHelpButton"
+        overlay.addChild(closeButton)
+        
+        let closeLabel = SKLabelNode(fontNamed: "Copperplate")
+        closeLabel.text = "×"
+        closeLabel.fontSize = 26
+        closeLabel.fontColor = .white
+        closeLabel.verticalAlignmentMode = .center
+        closeLabel.horizontalAlignmentMode = .center
+        closeLabel.position = closeButton.position
+        overlay.addChild(closeLabel)
+        
+        // Add to scene with animation
+        overlay.alpha = 0
+        addChild(overlay)
+        overlay.run(SKAction.fadeIn(withDuration: 0.3))
+        
+        // Add touch handler for close button
+        bg.name = "closeHelpButton"
+    }
+    
+    private func toggleMiniMap() {
+        if let miniMap = childNode(withName: "miniMap") {
+            isMiniMapVisible = !isMiniMapVisible
+            
+            if isMiniMapVisible {
+                // Show minimap
+                updateMiniMap()
+                miniMap.run(SKAction.fadeIn(withDuration: 0.3))
+            } else {
+                // Hide minimap
+                miniMap.run(SKAction.fadeOut(withDuration: 0.3))
+            }
+        }
+    }
+    
     // MARK: - Dismiss Exploration
     
     private func dismissExploration() {
-        // Add print statements to debug the flow
-        print("Starting dismissExploration...")
-        
         // Ensure we're on the main thread
         DispatchQueue.main.async {
-            print("In main thread callback...")
-            
             // Find the view controller
             if let viewController = self.view?.window?.rootViewController {
-                print("Found root view controller: \(type(of: viewController))")
-                
                 // Check what kind of view controller we have
                 if let explorationVC = viewController as? ExplorationViewController {
-                    print("Found ExplorationViewController, calling returnToGame")
                     explorationVC.returnToGame()
                 }
                 else if let navigationController = viewController as? UINavigationController,
                         let explorationVC = navigationController.topViewController as? ExplorationViewController {
-                    print("Found ExplorationViewController in NavigationController, calling returnToGame")
                     explorationVC.returnToGame()
                 }
                 else if let tabController = viewController as? UITabBarController,
                         let explorationVC = tabController.selectedViewController as? ExplorationViewController {
-                    print("Found ExplorationViewController in TabController, calling returnToGame")
                     explorationVC.returnToGame()
                 }
                 else if let presentedVC = viewController.presentedViewController as? ExplorationViewController {
-                    print("Found ExplorationViewController as presented, calling returnToGame")
                     presentedVC.returnToGame()
                 }
                 else {
-                    print("Could not find ExplorationViewController, trying to dismiss directly")
                     viewController.dismiss(animated: true)
                 }
-            } else {
-                print("Could not find view controller")
             }
         }
     }
@@ -595,7 +925,8 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         // Create a dashed line between current and target nodes
         let dashedLine = createDashedLine(from: currentNode.position, to: targetNode.position)
         dashedLine.alpha = 0
-        addChild(dashedLine)
+        dashedLine.zPosition = 100
+        worldContainer.addChild(dashedLine)
         
         // Animate the line
         dashedLine.run(SKAction.sequence([
@@ -610,7 +941,8 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         particle.fillColor = .white
         particle.strokeColor = .clear
         particle.position = currentNode.position
-        addChild(particle)
+        particle.zPosition = 101
+        worldContainer.addChild(particle)
         
         // Move particle along path
         particle.run(SKAction.sequence([
@@ -629,7 +961,8 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         flash1.fillColor = .white
         flash1.strokeColor = .clear
         flash1.alpha = 0
-        addChild(flash1)
+        flash1.zPosition = 100
+        worldContainer.addChild(flash1)
         
         // Create a teleport flash effect at target location
         let flash2 = SKShapeNode(circleOfRadius: 30)
@@ -637,7 +970,8 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         flash2.fillColor = .white
         flash2.strokeColor = .clear
         flash2.alpha = 0
-        addChild(flash2)
+        flash2.zPosition = 100
+        worldContainer.addChild(flash2)
         
         // Animate departure flash
         flash1.run(SKAction.sequence([
@@ -665,8 +999,8 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         revealCircle.fillColor = .clear
         revealCircle.strokeColor = .white
         revealCircle.lineWidth = 2
-        revealCircle.zPosition = 500
-        addChild(revealCircle)
+        revealCircle.zPosition = 100
+        worldContainer.addChild(revealCircle)
         
         // Animate the circle expanding to the reveal radius
         let targetRadius = CGFloat(radius * 60)
@@ -687,43 +1021,20 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
             
             // If within reveal radius, add sparkle
             if distance <= targetRadius {
-                let sparkle = SKEmitterNode()
-                sparkle.particleTexture = SKTexture(imageNamed: "spark")
-                sparkle.particleBirthRate = 20
-                sparkle.numParticlesToEmit = 20
-                sparkle.particleLifetime = 1.0
-                sparkle.particleScale = 0.3
-                sparkle.particleScaleRange = 0.2
-                sparkle.particleColor = .white
-                sparkle.particleColorBlendFactor = 1.0
-                sparkle.particleSpeed = 10
-                sparkle.particleSpeedRange = 5
-                sparkle.emissionAngle = 0
-                sparkle.emissionAngleRange = .pi * 2
-                sparkle.particleAlpha = 0.8
-                sparkle.particleAlphaRange = 0.2
-                sparkle.particleRotation = 0
-                sparkle.particleRotationRange = .pi * 2
+                let sparkle = SKShapeNode(circleOfRadius: 3)
+                sparkle.fillColor = .white
+                sparkle.strokeColor = .clear
+                sparkle.alpha = 0.8
+                sparkle.position = node.position
+                sparkle.zPosition = 101
                 
-                // If texture not available, use a simple shape
-                if sparkle.particleTexture == nil {
-                    let particle = SKShapeNode(circleOfRadius: 3)
-                    particle.fillColor = .white
-                    particle.strokeColor = .clear
-                    particle.alpha = 0.8
-                    node.addChild(particle)
-                    
-                    particle.run(SKAction.sequence([
-                        SKAction.fadeOut(withDuration: 1.0),
-                        SKAction.removeFromParent()
-                    ]))
-                } else {
-                    node.addChild(sparkle)
-                    sparkle.run(SKAction.sequence([
-                        SKAction.wait(forDuration: 1.0),
-                        SKAction.removeFromParent()
-                    ]))
-                }
+                // Add simple animation
+                sparkle.run(SKAction.sequence([
+                    SKAction.fadeOut(withDuration: 1.0),
+                    SKAction.removeFromParent()
+                ]))
+                
+                worldContainer.addChild(sparkle)
             }
         }
     }
@@ -743,6 +1054,31 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
             SKAction.fadeOut(withDuration: 0.5),
             SKAction.removeFromParent()
         ]))
+        
+        // Update realm boundary colors
+        if let container = childNode(withName: "worldContainer") {
+            for child in container.children {
+                if let boundary = child as? SKShapeNode,
+                   boundary.name?.contains("Boundary") == true {
+                    let realmName = boundary.name?.replacingOccurrences(of: "Boundary", with: "")
+                    if realmName?.lowercased() == newPhase.rawValue.lowercased() {
+                        // Highlight active realm boundary
+                        boundary.strokeColor = newPhase.color
+                        boundary.glowWidth = 10
+                        boundary.run(SKAction.sequence([
+                            SKAction.fadeAlpha(to: 0.8, duration: 0.3),
+                            SKAction.fadeAlpha(to: 0.5, duration: 0.3)
+                        ]))
+                    } else {
+                        // Dim other realm boundaries
+                        if let realm = Realm(rawValue: realmName?.lowercased() ?? "") {
+                            boundary.strokeColor = realm.color.withAlphaComponent(0.3)
+                            boundary.glowWidth = 0
+                        }
+                    }
+                }
+            }
+        }
     }
     
     private func animateSpecialEffect(_ card: ExplorationCard) {
@@ -775,16 +1111,61 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
                     sparkle.fillColor = revealColor
                     sparkle.strokeColor = .clear
                     sparkle.alpha = 0.8
-                    node.addChild(sparkle)
+                    sparkle.position = node.position
+                    sparkle.zPosition = 101
                     
                     sparkle.run(SKAction.sequence([
                         SKAction.fadeOut(withDuration: 1.0),
                         SKAction.removeFromParent()
                     ]))
+                    
+                    worldContainer.addChild(sparkle)
                 }
             }
         default:
             break
+        }
+    }
+    
+    // MARK: - Override Parent Methods
+    
+    // Override this method to handle popups properly
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        
+        // Check for popups first
+        if let popup = childNode(withName: "nodePopup"),
+           let buttonBg = popup.childNode(withName: "popupButton"),
+           buttonBg.contains(location) {
+            
+            if let callback = popup.userData?.value(forKey: "callback") as? () -> Void {
+                callback()
+            }
+            return
+        }
+        
+        // Check for help overlay close
+        if let helpOverlay = childNode(withName: "helpOverlay"),
+           let closeButton = helpOverlay.childNode(withName: "closeHelpButton"),
+           (closeButton.contains(location) || closeButton.name == "closeHelpButton") {
+            helpOverlay.run(SKAction.sequence([
+                SKAction.fadeOut(withDuration: 0.3),
+                SKAction.removeFromParent()
+            ]))
+            return
+        }
+        
+        // Continue with regular touch handling
+        super.touchesBegan(touches, with: event)
+    }
+    
+    override func update(_ currentTime: TimeInterval) {
+        super.update(currentTime)
+        
+        // Update minimap if visible
+        if isMiniMapVisible {
+            updateMiniMap()
         }
     }
 }

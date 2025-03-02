@@ -390,6 +390,27 @@ class CelestialRealm {
             }
 
 extension CelestialRealm {
+    
+    // Public method to update current node
+        public func moveToNode(withID nodeID: String) {
+            // Make sure the node exists
+            if nodes.contains(where: { $0.id == nodeID }) {
+                currentNodeID = nodeID
+            }
+        }
+        
+        // Public wrapper for revealConnectedNodes
+        public func revealNodesConnectedTo(nodeID: String) {
+            revealConnectedNodes(from: nodeID)
+        }
+        
+        // Public method to directly modify node properties
+        public func markNodeAsVisited(_ nodeID: String) {
+            if let index = nodes.firstIndex(where: { $0.id == nodeID }) {
+                nodes[index].isVisited = true
+            }
+        }
+    
     // Adjust the scale of the world based on screen size
     func adjustScale(for screenSize: CGSize) {
         // Calculate a scale factor based on screen size
