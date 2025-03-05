@@ -24,25 +24,25 @@ class CelestialRealmScene: SKScene {
     var nodeSprites: [String: SKNode] = [:]
     
     // Constants for visualization
-    private let dawnRadius: CGFloat = 150
-    private let duskRadius: CGFloat = 300
-    private let nightRadius: CGFloat = 450
+    internal let dawnRadius: CGFloat = 150
+    internal let duskRadius: CGFloat = 300
+    internal let nightRadius: CGFloat = 450
     
     // World container for panning and zooming
-    private var worldContainer: SKNode!
+    internal var worldContainer: SKNode!
     
     // Zoom and pan properties
-    private var minScale: CGFloat = 0.5
-    private var maxScale: CGFloat = 2.0
-    private var currentScale: CGFloat = 1.0
-    private var isDragging = false
-    private var lastPanLocation: CGPoint?
-    private var initialPinchDistance: CGFloat?
-    private var initialScale: CGFloat?
+    internal var minScale: CGFloat = 0.5
+    internal var maxScale: CGFloat = 2.0
+    internal var currentScale: CGFloat = 1.0
+    internal var isDragging = false
+    internal var lastPanLocation: CGPoint?
+    internal var initialPinchDistance: CGFloat?
+    internal var initialScale: CGFloat?
     
     // Dynamic node sizing
-    private var baseNodeSize: CGFloat = 20
-    private var nodeScaleBreakpoints: [CGFloat: CGFloat] = [
+    internal var baseNodeSize: CGFloat = 20
+    internal var nodeScaleBreakpoints: [CGFloat: CGFloat] = [
         0.5: 1.3,  // At 0.5x zoom, show nodes 30% larger
         0.75: 1.2, // At 0.75x zoom, show nodes 20% larger
         1.0: 1.0,  // Normal size at 1.0x zoom
@@ -426,18 +426,18 @@ class CelestialRealmScene: SKScene {
         panel.name = "infoPanel"
         
         // Background
-        let panelBg = SKShapeNode(rectOf: CGSize(width: 250, height: 200), cornerRadius: 10)
-        panelBg.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.8)
-        panelBg.strokeColor = .white
-        panelBg.lineWidth = 1
-        panel.addChild(panelBg)
-        
-        // Title
-        let titleBg = SKShapeNode(rectOf: CGSize(width: 250, height: 40), cornerRadius: 10)
-        titleBg.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
-        titleBg.strokeColor = .clear
-        titleBg.position = CGPoint(x: 0, y: 80)
-        panel.addChild(titleBg)
+            let panelBg = SKShapeNode(rectOf: CGSize(width: 250, height: 200), cornerRadius: 10)
+            panelBg.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.8)
+            panelBg.strokeColor = .white
+            panelBg.lineWidth = 1
+            panel.addChild(panelBg)
+            
+            // Title background
+            let titleBg = SKShapeNode(rectOf: CGSize(width: 250, height: 40), cornerRadius: 10)
+            titleBg.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
+            titleBg.strokeColor = .clear
+            titleBg.position = CGPoint(x: 0, y: 80)
+            panel.addChild(titleBg)
         
         let title = SKLabelNode(fontNamed: "Copperplate")
         title.text = "Node Information"
@@ -484,8 +484,9 @@ class CelestialRealmScene: SKScene {
         panel.userData = NSMutableDictionary()
         panel.userData?.setValue(false, forKey: "expanded")
         
-        // Position in bottom right
-        panel.position = CGPoint(x: size.width - 125, y: 100)
+        let handViewHeight: CGFloat = 200
+        let verticalOffset: CGFloat = 50
+        panel.position = CGPoint(x: size.width - 125, y: size.height - handViewHeight - verticalOffset)
         panel.setScale(0.8) // Slightly smaller
         
         // Initial collapsed state
@@ -537,9 +538,14 @@ class CelestialRealmScene: SKScene {
     }
     
     private func updateInfoPanel(with node: WorldNode?) {
-        let panel = uiLayer.childNode(withName: "infoPanel")
-        let title = panel?.childNode(withName: "infoTitle") as? SKLabelNode
-        let content = panel?.childNode(withName: "infoContent") as? SKLabelNode
+        guard let panel = uiLayer.childNode(withName: "infoPanel") else { return }
+        
+        let title = panel.childNode(withName: "infoTitle") as? SKLabelNode
+        let content = panel.childNode(withName: "infoContent") as? SKLabelNode
+        
+        // Calculate vertical position to avoid hand view
+        let handViewHeight: CGFloat = 200  // Height of hand view
+        let verticalOffset: CGFloat = 50   // Additional offset from hand view
         
         if let node = node {
             // Update with node info
@@ -561,12 +567,21 @@ class CelestialRealmScene: SKScene {
             
             content?.text = contentText
             
-            // Ensure panel is expanded
-            expandPanel(panel!)
+            // Modify panel position to be above hand view
+            panel.position = CGPoint(
+                x: size.width - 125,
+                y: size.height - handViewHeight - verticalOffset
+            )
+            
+            // Ensure panel is expanded and visible
+            expandPanel(panel)
         } else {
             // Reset to default
             title?.text = "Node Information"
             content?.text = "Select a node to view details."
+            
+            // Reset position to default
+            panel.position = CGPoint(x: size.width - 125, y: 100)
         }
     }
     
@@ -608,7 +623,7 @@ class CelestialRealmScene: SKScene {
     }
     
     // Update node sizing based on zoom level
-    private func updateNodeSizing() {
+    internal func updateNodeSizing() {
         // Find the closest breakpoint
         var closestScale: CGFloat = 1.0
         var closestDistance: CGFloat = .infinity
@@ -912,13 +927,13 @@ class CelestialRealmScene: SKScene {
                 ]))
             }
             
-            private func handleZoomIn() {
+    internal func handleZoomIn() {
                 // Zoom in by a fixed amount
                 let targetScale = min(maxScale, currentScale * 1.25)
                 animateZoom(to: targetScale)
             }
             
-            private func handleZoomOut() {
+    internal func handleZoomOut() {
                 // Zoom out by a fixed amount
                 let targetScale = max(minScale, currentScale / 1.25)
                 animateZoom(to: targetScale)

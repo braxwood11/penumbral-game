@@ -33,7 +33,7 @@ class GameViewController: UIViewController {
         print("Starting exploration mode")
         
         // Create and present the exploration view controller
-        let explorationVC = ExplorationViewController()
+        let explorationVC = EnhancedExplorationViewController()
         
         // Ensure proper modal presentation
         explorationVC.modalPresentationStyle = .fullScreen
