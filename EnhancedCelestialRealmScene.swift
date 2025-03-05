@@ -322,36 +322,12 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
     
     // MARK: - Node Arrival Handling
     
-    private func handleNodeArrival(at nodeID: String) {
+    func handleNodeArrival(at nodeID: String) {
         // Get the node data
         guard let node = celestialRealm.nodes.first(where: { $0.id == nodeID }) else { return }
         
-        // Process based on node type
-        switch node.nodeType {
-        case .battle(let difficulty, let enemyType):
-            // Show difficulty level and opponent popup
-            showBattlePopup(difficulty: difficulty, enemyType: enemyType, nodeID: nodeID)
-            
-        case .cardRefinery:
-            // Show card refinement UI
-            showRefineryPopup(nodeID: nodeID)
-            
-        case .narrative(let dialogueID, let character):
-            // Show narrative dialogue
-            showNarrativePopup(character: character, dialogueID: dialogueID, nodeID: nodeID)
-            
-        case .shop:
-            // Show shop interface
-            showShopPopup(nodeID: nodeID)
-            
-        case .mystery:
-            // Reveal random effect
-            revealMysteryNode(nodeID: nodeID)
-            
-        case .nexus:
-            // Return to hub functionality
-            showNexusPopup()
-        }
+        // Show the appropriate interaction screen
+        showNodeInteractionScreen(for: nodeID)
     }
     
     private func showPopup(title: String, description: String, buttonText: String = "Continue", callback: @escaping () -> Void) {
@@ -624,7 +600,8 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
     
     // MARK: - Dismiss Exploration
     
-    private func dismissExploration() {
+    // Add a method to dismiss the exploration mode
+    func dismissExploration() {
         // Ensure we're on the main thread
         DispatchQueue.main.async {
             // Find the view controller
@@ -653,10 +630,7 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
     
     // MARK: - Animation Effects
     
-    private func animateCardEffect(
-        _ card: ExplorationCard,
-        targetNodeID: String
-    ) {
+    private func animateCardEffect(_ card: ExplorationCard, targetNodeID: String) {
         // Create an effect based on the card type
         switch card.cardType {
         case .path:
@@ -673,6 +647,12 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
             
         case .special:
             animateSpecialEffect(card)
+        }
+        
+        // After animation completes, handle node arrival with new screens
+        // Use a slight delay to allow animations to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.handleNodeArrival(at: targetNodeID)
         }
     }
     
