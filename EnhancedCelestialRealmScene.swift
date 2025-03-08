@@ -35,6 +35,7 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         
         // Set up the hand view
         setupExplorationHand()
+        setupEnhancedUI()
         
         // Add navigation features
         setupReturnButton()
@@ -55,6 +56,295 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
             centerOn(nodeID: currentNode.id)
         }
     }
+    
+    override func updateVisualization() {
+            super.updateVisualization()
+            updateRealmIndicators()
+            
+            // Also update the phase panel
+            if let phasePanel = uiLayer.childNode(withName: "phasePanel") as? SKShapeNode {
+                phasePanel.fillColor = celestialRealm.currentPhase.color.withAlphaComponent(0.3)
+                phasePanel.strokeColor = celestialRealm.currentPhase.color
+            }
+            
+            if let phaseLabel = uiLayer.childNode(withName: "phaseLabel") as? SKLabelNode {
+                phaseLabel.text = "Current Phase: \(celestialRealm.currentPhase.rawValue.capitalized)"
+            }
+        }
+    
+    func setupEnhancedUI() {
+            // Replace the old return button with a better positioned one
+            if let oldReturnButton = childNode(withName: "returnButton") {
+                oldReturnButton.removeFromParent()
+            }
+            
+            // Redesigned return button - positioned safely below notch
+            let returnButton = SKShapeNode(rectOf: CGSize(width: 180, height: 40), cornerRadius: 20)
+            returnButton.fillColor = SKColor(red: 0.7, green: 0.3, blue: 0.3, alpha: 0.9)
+            returnButton.strokeColor = .white
+            returnButton.lineWidth = 2
+            returnButton.position = CGPoint(x: size.width - 110, y: size.height - 100) // Well below notch
+            returnButton.name = "returnButton"
+            returnButton.zPosition = 1100
+            
+            // Return arrow icon
+            let arrowNode = SKShapeNode()
+            let arrowPath = CGMutablePath()
+            arrowPath.move(to: CGPoint(x: -8, y: 0))
+            arrowPath.addLine(to: CGPoint(x: 8, y: 0))
+            arrowPath.move(to: CGPoint(x: -4, y: 4))
+            arrowPath.addLine(to: CGPoint(x: -8, y: 0))
+            arrowPath.addLine(to: CGPoint(x: -4, y: -4))
+            arrowNode.path = arrowPath
+            arrowNode.strokeColor = .white
+            arrowNode.lineWidth = 2
+            arrowNode.position = CGPoint(x: -70, y: 0)
+            returnButton.addChild(arrowNode)
+            
+            let buttonLabel = SKLabelNode(fontNamed: "Copperplate")
+            buttonLabel.text = "Return to Battle"
+            buttonLabel.fontSize = 16
+            buttonLabel.fontColor = .white
+            buttonLabel.verticalAlignmentMode = .center
+            buttonLabel.horizontalAlignmentMode = .center
+            buttonLabel.position = CGPoint(x: 10, y: 0) // Offset to account for arrow
+            returnButton.addChild(buttonLabel)
+            
+            addChild(returnButton)
+            
+            // Subtle pulse animation to draw attention
+            returnButton.run(SKAction.repeatForever(SKAction.sequence([
+                SKAction.scale(to: 1.05, duration: 1.0),
+                SKAction.scale(to: 1.0, duration: 1.0)
+            ])))
+            
+            // Add a realm indicators panel
+            setupRealmIndicatorsPanel()
+            
+            // Improve existing UI elements
+            enhanceNavigationControls()
+            enhancePhaseIndicator()
+        }
+    
+    // Enhance existing phase indicator with better positioning and styling
+        private func enhancePhaseIndicator() {
+            // Remove existing phase indicator
+            if let oldIndicator = uiLayer.childNode(withName: "phaseIndicator") {
+                oldIndicator.removeFromParent()
+            }
+            
+            // Remove existing shift button
+            if let oldShiftButton = uiLayer.childNode(withName: "shiftButton") {
+                oldShiftButton.removeFromParent()
+            }
+            
+            // Create new safe area-aware phase indicator
+            let safeAreaTop: CGFloat = 44
+            let topBarHeight: CGFloat = 50
+            
+            // Phase indicator redesigned as a pill with realm color
+            let phaseWidth: CGFloat = 180
+            let phaseHeight: CGFloat = 36
+            let phasePanel = SKShapeNode(rectOf: CGSize(width: phaseWidth, height: phaseHeight), cornerRadius: phaseHeight/2)
+            phasePanel.fillColor = celestialRealm.currentPhase.color.withAlphaComponent(0.3)
+            phasePanel.strokeColor = celestialRealm.currentPhase.color
+            phasePanel.lineWidth = 2
+            phasePanel.position = CGPoint(x: size.width/2, y: size.height - (topBarHeight/2 + safeAreaTop))
+            phasePanel.name = "phasePanel"
+            phasePanel.zPosition = 990
+            uiLayer.addChild(phasePanel)
+            
+            // Phase label with improved font and contrast
+            let phaseLabel = SKLabelNode(fontNamed: "Copperplate")
+            phaseLabel.text = "Current Phase: \(celestialRealm.currentPhase.rawValue.capitalized)"
+            phaseLabel.fontSize = 16
+            phaseLabel.fontColor = .white
+            phaseLabel.verticalAlignmentMode = .center
+            phaseLabel.horizontalAlignmentMode = .center
+            phaseLabel.name = "phaseLabel"
+            phaseLabel.position = phasePanel.position
+            phaseLabel.zPosition = 991
+            uiLayer.addChild(phaseLabel)
+            
+            // Create phase shift button (positioned safely)
+            let buttonSize = CGSize(width: 120, height: 32)
+            let shiftButton = SKShapeNode(rectOf: buttonSize, cornerRadius: buttonSize.height/2)
+            shiftButton.fillColor = SKColor(red: 0.3, green: 0.3, blue: 0.5, alpha: 0.8)
+            shiftButton.strokeColor = .white
+            shiftButton.lineWidth = 1.5
+            
+            // Position on right side with safe margin
+            shiftButton.position = CGPoint(x: size.width - 80, y: phasePanel.position.y)
+            shiftButton.name = "shiftButton"
+            shiftButton.zPosition = 990
+            uiLayer.addChild(shiftButton)
+            
+            let shiftLabel = SKLabelNode(fontNamed: "Copperplate")
+            shiftLabel.text = "Shift Phase"
+            shiftLabel.fontSize = 14
+            shiftLabel.fontColor = .white
+            shiftLabel.verticalAlignmentMode = .center
+            shiftLabel.position = shiftButton.position
+            shiftLabel.zPosition = 991
+            uiLayer.addChild(shiftLabel)
+        }
+        
+        // Improve the positioning and styling of navigation controls
+        private func enhanceNavigationControls() {
+            // Remove existing navigation controls
+            uiLayer.childNode(withName: "zoomInButton")?.removeFromParent()
+            uiLayer.childNode(withName: "zoomOutButton")?.removeFromParent()
+            uiLayer.childNode(withName: "resetViewButton")?.removeFromParent()
+            
+            // Safe area insets
+            let safeAreaBottom: CGFloat = 34
+            
+            // Create a bottom control bar
+            let controlBarHeight: CGFloat = 60
+            let controlBar = SKShapeNode(rectOf: CGSize(width: size.width, height: controlBarHeight))
+            controlBar.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.8)
+            controlBar.strokeColor = .clear
+            controlBar.position = CGPoint(x: size.width/2, y: controlBarHeight/2 + safeAreaBottom)
+            controlBar.name = "controlBar"
+            controlBar.zPosition = 990
+            uiLayer.addChild(controlBar)
+            
+            // Zoom controls with improved styling
+            let buttonPadding: CGFloat = 80
+            
+            // Zoom in button (left)
+            let zoomInButton = SKShapeNode(circleOfRadius: 20)
+            zoomInButton.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
+            zoomInButton.strokeColor = .white
+            zoomInButton.lineWidth = 2
+            zoomInButton.position = CGPoint(x: size.width/2 - buttonPadding, y: controlBar.position.y)
+            zoomInButton.name = "zoomInButton"
+            zoomInButton.zPosition = 991
+            uiLayer.addChild(zoomInButton)
+            
+            let zoomInLabel = SKLabelNode(fontNamed: "Copperplate")
+            zoomInLabel.text = "+"
+            zoomInLabel.fontSize = 24
+            zoomInLabel.fontColor = .white
+            zoomInLabel.verticalAlignmentMode = .center
+            zoomInLabel.horizontalAlignmentMode = .center
+            zoomInLabel.position = zoomInButton.position
+            zoomInLabel.zPosition = 992
+            uiLayer.addChild(zoomInLabel)
+            
+            // Zoom out button (right)
+            let zoomOutButton = SKShapeNode(circleOfRadius: 20)
+            zoomOutButton.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
+            zoomOutButton.strokeColor = .white
+            zoomOutButton.lineWidth = 2
+            zoomOutButton.position = CGPoint(x: size.width/2 + buttonPadding, y: controlBar.position.y)
+            zoomOutButton.name = "zoomOutButton"
+            zoomOutButton.zPosition = 991
+            uiLayer.addChild(zoomOutButton)
+            
+            let zoomOutLabel = SKLabelNode(fontNamed: "Copperplate")
+            zoomOutLabel.text = "−" // en dash for better appearance
+            zoomOutLabel.fontSize = 24
+            zoomOutLabel.fontColor = .white
+            zoomOutLabel.verticalAlignmentMode = .center
+            zoomOutLabel.horizontalAlignmentMode = .center
+            zoomOutLabel.position = zoomOutButton.position
+            zoomOutLabel.zPosition = 992
+            uiLayer.addChild(zoomOutLabel)
+            
+            // Reset view button (center)
+            let resetButton = SKShapeNode(rectOf: CGSize(width: 120, height: 36), cornerRadius: 18)
+            resetButton.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
+            resetButton.strokeColor = .white
+            resetButton.lineWidth = 1.5
+            resetButton.position = CGPoint(x: size.width/2, y: controlBar.position.y)
+            resetButton.name = "resetViewButton"
+            resetButton.zPosition = 991
+            uiLayer.addChild(resetButton)
+            
+            let resetLabel = SKLabelNode(fontNamed: "Copperplate")
+            resetLabel.text = "Reset View"
+            resetLabel.fontSize = 14
+            resetLabel.fontColor = .white
+            resetLabel.verticalAlignmentMode = .center
+            resetLabel.horizontalAlignmentMode = .center
+            resetLabel.position = resetButton.position
+            resetLabel.zPosition = 992
+            uiLayer.addChild(resetLabel)
+        }
+    
+    // New method to add realm indicators showing current realm colors/status
+      private func setupRealmIndicatorsPanel() {
+          // Create panel on left side
+          let panelWidth: CGFloat = 120
+          let panelHeight: CGFloat = 105 // Height for 3 realms
+          let panelX: CGFloat = 75
+          let panelY: CGFloat = size.height - 120 // Below notch/pill
+          
+          let panel = SKShapeNode(rectOf: CGSize(width: panelWidth, height: panelHeight), cornerRadius: 10)
+          panel.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.8)
+          panel.strokeColor = .white
+          panel.lineWidth = 1
+          panel.position = CGPoint(x: panelX, y: panelY)
+          panel.name = "realmPanel"
+          panel.zPosition = 990
+          addChild(panel)
+          
+          // Panel title
+          let titleLabel = SKLabelNode(fontNamed: "Copperplate")
+          titleLabel.text = "Realms"
+          titleLabel.fontSize = 14
+          titleLabel.fontColor = .white
+          titleLabel.position = CGPoint(x: panelX, y: panelY + panelHeight/2 - 14)
+          titleLabel.zPosition = 991
+          addChild(titleLabel)
+          
+          // Add realm indicators
+          let realms = Realm.allCases
+          let indicatorY = panelY + panelHeight/2 - 35
+          let spacing: CGFloat = 25
+          
+          for (index, realm) in realms.enumerated() {
+              // Realm circle
+              let circle = SKShapeNode(circleOfRadius: 8)
+              circle.fillColor = realm.color
+              circle.strokeColor = .white
+              circle.lineWidth = 1
+              circle.position = CGPoint(x: panelX - 40, y: indicatorY - CGFloat(index) * spacing)
+              circle.zPosition = 991
+              addChild(circle)
+              
+              // Realm name
+              let nameLabel = SKLabelNode(fontNamed: "Copperplate")
+              nameLabel.text = realm.rawValue.capitalized
+              nameLabel.fontSize = 14
+              nameLabel.fontColor = .white
+              nameLabel.horizontalAlignmentMode = .left
+              nameLabel.verticalAlignmentMode = .center
+              nameLabel.position = CGPoint(x: panelX - 25, y: indicatorY - CGFloat(index) * spacing)
+              nameLabel.zPosition = 991
+              addChild(nameLabel)
+              
+              // Active indicator if this is the current realm
+              if realm == celestialRealm.currentPhase {
+                  let activeIndicator = SKShapeNode(circleOfRadius: 12)
+                  activeIndicator.strokeColor = .white
+                  activeIndicator.lineWidth = 1
+                  activeIndicator.fillColor = .clear
+                  activeIndicator.position = circle.position
+                  activeIndicator.zPosition = 990
+                  activeIndicator.name = "activeRealmIndicator"
+                  addChild(activeIndicator)
+                  
+                  // Pulse animation
+                  activeIndicator.run(SKAction.repeatForever(SKAction.sequence([
+                      SKAction.fadeAlpha(to: 0.3, duration: 0.8),
+                      SKAction.fadeAlpha(to: 1.0, duration: 0.8)
+                  ])))
+              }
+          }
+      }
+      
     
     private func setupExplorationHand() {
         // Create hand view at the bottom of the screen
@@ -77,6 +367,44 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         // Update with current cards
         updateHandView()
     }
+    
+    // For updating realm indicator when phase changes
+        func updateRealmIndicators() {
+            // Remove existing active indicator
+            if let activeIndicator = childNode(withName: "activeRealmIndicator") {
+                activeIndicator.removeFromParent()
+            }
+            
+            // Add new indicator for current phase
+            let realms = Realm.allCases
+            let panelY = size.height - 120
+            let indicatorY = panelY + 105/2 - 35
+            let spacing: CGFloat = 25
+            let panelX: CGFloat = 75
+            
+            for (index, realm) in realms.enumerated() {
+                if realm == celestialRealm.currentPhase {
+                    // Find circle position
+                    let circlePos = CGPoint(x: panelX - 40, y: indicatorY - CGFloat(index) * spacing)
+                    
+                    // Add active indicator around this realm
+                    let activeIndicator = SKShapeNode(circleOfRadius: 12)
+                    activeIndicator.strokeColor = .white
+                    activeIndicator.lineWidth = 1
+                    activeIndicator.fillColor = .clear
+                    activeIndicator.position = circlePos
+                    activeIndicator.zPosition = 990
+                    activeIndicator.name = "activeRealmIndicator"
+                    addChild(activeIndicator)
+                    
+                    // Pulse animation
+                    activeIndicator.run(SKAction.repeatForever(SKAction.sequence([
+                        SKAction.fadeAlpha(to: 0.3, duration: 0.8),
+                        SKAction.fadeAlpha(to: 1.0, duration: 0.8)
+                    ])))
+                }
+            }
+        }
     
     private func createLegendItem(realm: Realm, position: CGPoint, parent: SKNode) {
         let itemNode = SKNode()
@@ -218,21 +546,30 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
     // MARK: - Touch Handling
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        
+        if handleTouchesForNodeInteractions(touches, with: event) {
+                return
+            }
+        
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
         
         // Check for popups first
         if let popup = childNode(withName: "nodePopup") {
-            // Check popup button across entire scene
-            if let buttonBg = popup.childNode(withName: "popupButton"),
-               buttonBg.contains(convert(location, to: popup)) {
-                if let callback = popup.userData?.value(forKey: "callback") as? () -> Void {
-                    callback()
-                    return
+            // Convert touch location to popup's coordinate system
+            let popupLocation = convert(location, to: popup)
+            
+            if let buttonBg = popup.childNode(withName: "popupButton") {
+                // Check if the converted location is inside the button
+                if buttonBg.contains(popupLocation) {
+                    if let callback = popup.userData?.value(forKey: "callback") as? () -> Void {
+                        callback()
+                        return
+                    }
                 }
             }
             
-            // If popup is visible, block further touches
+            // Block further touches if popup is visible
             if popup.alpha > 0 {
                 return
             }
@@ -288,6 +625,16 @@ class EnhancedCelestialRealmScene: CelestialRealmScene, ExplorationHandDelegate 
         
         // Otherwise, pass the touch to the parent implementation
         super.touchesBegan(touches, with: event)
+    }
+    
+    // Add this method to EnhancedCelestialRealmScene.swift
+    override func moveToNode(_ node: WorldNode) {
+        super.moveToNode(node)
+        
+        // After the animation completes, show the interaction screen
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
+            self?.handleNodeArrival(at: node.id)
+        }
     }
     
     

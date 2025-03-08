@@ -108,19 +108,23 @@ class CelestialRealmScene: SKScene {
     }
     
     private func setupBackground() {
-        // Create a starfield background
-        let background = SKSpriteNode(color: SKColor(red: 0.05, green: 0.05, blue: 0.1, alpha: 1), size: size)
+        // Create a starfield background with MUCH larger area
+        let backgroundSize = CGSize(width: size.width * 5, height: size.height * 5)
+        let background = SKShapeNode(rect: CGRect(x: -backgroundSize.width/2, y: -backgroundSize.height/2,
+                                                 width: backgroundSize.width, height: backgroundSize.height))
+        background.fillColor = SKColor(red: 0.05, green: 0.05, blue: 0.1, alpha: 1)
+        background.strokeColor = .clear
         background.position = CGPoint.zero
         backgroundLayer.addChild(background)
         
-        // Add stars
-        for _ in 0..<100 {
+        // Add many more stars across a much larger area
+        for _ in 0..<500 {
             let star = SKShapeNode(circleOfRadius: CGFloat.random(in: 0.5...2))
             star.fillColor = .white
             star.strokeColor = .clear
             star.position = CGPoint(
-                x: CGFloat.random(in: -size.width/2...size.width/2),
-                y: CGFloat.random(in: -size.height/2...size.height/2)
+                x: CGFloat.random(in: -backgroundSize.width/2...backgroundSize.width/2),
+                y: CGFloat.random(in: -backgroundSize.height/2...backgroundSize.height/2)
             )
             star.alpha = CGFloat.random(in: 0.3...1.0)
             
@@ -326,59 +330,158 @@ class CelestialRealmScene: SKScene {
         setupInfoPanel()
     }
     
-    private func setupPhaseIndicator() {
-        // Create UI for realm phase indicator
-        let phaseContainer = SKNode()
+    func setupPhaseIndicator() {
+            // Create a unified top bar for better organization
+            let topBarHeight: CGFloat = 50
+            let safeAreaTop: CGFloat = 44  // Account for notch/pill on iPhone
+            
+            let topBar = SKShapeNode(rectOf: CGSize(width: size.width, height: topBarHeight))
+            topBar.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.8)
+            topBar.strokeColor = .clear
+            topBar.position = CGPoint(x: size.width/2, y: size.height - (topBarHeight/2 + safeAreaTop))
+            topBar.name = "topBar"
+            topBar.zPosition = 990
+            uiLayer.addChild(topBar)
+            
+            // Phase indicator redesigned as a pill with realm color
+            let phaseWidth: CGFloat = 180
+            let phaseHeight: CGFloat = 36
+            let phasePanel = SKShapeNode(rectOf: CGSize(width: phaseWidth, height: phaseHeight), cornerRadius: phaseHeight/2)
+            phasePanel.fillColor = celestialRealm.currentPhase.color.withAlphaComponent(0.3)
+            phasePanel.strokeColor = celestialRealm.currentPhase.color
+            phasePanel.lineWidth = 2
+            phasePanel.position = CGPoint(x: size.width/2, y: topBar.position.y)
+            phasePanel.name = "phasePanel"
+            uiLayer.addChild(phasePanel)
+            
+            // Phase label with improved font and contrast
+            let phaseLabel = SKLabelNode(fontNamed: "Copperplate")
+            phaseLabel.text = "Current Phase: \(celestialRealm.currentPhase.rawValue.capitalized)"
+            phaseLabel.fontSize = 16
+            phaseLabel.fontColor = .white
+            phaseLabel.verticalAlignmentMode = .center
+            phaseLabel.horizontalAlignmentMode = .center
+            phaseLabel.name = "phaseLabel"
+            phaseLabel.position = phasePanel.position
+            uiLayer.addChild(phaseLabel)
+            
+            // Create phase shift button (moved to right side)
+            let buttonSize = CGSize(width: 120, height: 32)
+            let shiftButton = SKShapeNode(rectOf: buttonSize, cornerRadius: buttonSize.height/2)
+            shiftButton.fillColor = SKColor(red: 0.3, green: 0.3, blue: 0.5, alpha: 0.8)
+            shiftButton.strokeColor = .white
+            shiftButton.lineWidth = 1.5
+            
+            // Position on right side of top bar with safe margin
+            shiftButton.position = CGPoint(x: size.width - 80, y: topBar.position.y)
+            shiftButton.name = "shiftButton"
+            uiLayer.addChild(shiftButton)
+            
+            let shiftLabel = SKLabelNode(fontNamed: "Copperplate")
+            shiftLabel.text = "Shift Phase"
+            shiftLabel.fontSize = 14
+            shiftLabel.fontColor = .white
+            shiftLabel.verticalAlignmentMode = .center
+            shiftLabel.position = shiftButton.position
+            uiLayer.addChild(shiftLabel)
+            
+            // Subtle pulse animation for shift button
+            shiftButton.run(SKAction.repeatForever(SKAction.sequence([
+                SKAction.scale(to: 1.05, duration: 1.0),
+                SKAction.scale(to: 1.0, duration: 1.0)
+            ])))
+        }
         
-        // Background panel
-        let panelWidth: CGFloat = 180
-        let panelHeight: CGFloat = 40
-        let panel = SKShapeNode(rectOf: CGSize(width: panelWidth, height: panelHeight), cornerRadius: 10)
-        panel.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.8)
-        panel.strokeColor = .white
-        panel.lineWidth = 1
-        phaseContainer.addChild(panel)
-        
-        // Phase label
-        let phaseLabel = SKLabelNode(fontNamed: "Copperplate")
-        phaseLabel.text = "Current Phase: Dawn"
-        phaseLabel.fontSize = 16
-        phaseLabel.fontColor = .white
-        phaseLabel.verticalAlignmentMode = .center
-        phaseLabel.name = "phaseLabel"
-        phaseContainer.addChild(phaseLabel)
-        
-        // Position in top center of screen
-        phaseContainer.position = CGPoint(x: size.width/2, y: size.height - 40)
-        phaseContainer.name = "phaseIndicator"
-        uiLayer.addChild(phaseContainer)
-        
-        // Create phase shift button
-        let shiftButton = SKShapeNode(rectOf: CGSize(width: 120, height: 40), cornerRadius: 10)
-        shiftButton.fillColor = .darkGray
-        shiftButton.strokeColor = .white
-        shiftButton.position = CGPoint(x: size.width/2, y: size.height - 90)
-        shiftButton.name = "shiftButton"
-        
-        let shiftLabel = SKLabelNode(fontNamed: "Copperplate")
-        shiftLabel.text = "Shift Phase"
-        shiftLabel.fontSize = 16
-        shiftLabel.fontColor = .white
-        shiftLabel.verticalAlignmentMode = .center
-        shiftLabel.position = shiftButton.position
-        
-        uiLayer.addChild(shiftButton)
-        uiLayer.addChild(shiftLabel)
-    }
-    
-    private func setupNavigationControls() {
-        // Zoom controls
-        createZoomButton("+", position: CGPoint(x: 40, y: size.height - 40), name: "zoomInButton")
-        createZoomButton("-", position: CGPoint(x: 40, y: size.height - 90), name: "zoomOutButton")
-        
-        // Reset view button
-        createNavButton("Reset View", position: CGPoint(x: 120, y: size.height - 40), name: "resetViewButton")
-    }
+        func setupNavigationControls() {
+            // Safe area insets
+            let safeAreaTop: CGFloat = 44
+            let safeAreaBottom: CGFloat = 34
+            
+            // Create a bottom control bar
+            let controlBarHeight: CGFloat = 60
+            let controlBar = SKShapeNode(rectOf: CGSize(width: size.width, height: controlBarHeight))
+            controlBar.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.8)
+            controlBar.strokeColor = .clear
+            controlBar.position = CGPoint(x: size.width/2, y: controlBarHeight/2 + safeAreaBottom)
+            controlBar.name = "controlBar"
+            controlBar.zPosition = 990
+            uiLayer.addChild(controlBar)
+            
+            // Zoom controls with improved styling
+            let buttonPadding: CGFloat = 80
+            
+            // Zoom in button (left)
+            let zoomInButton = SKShapeNode(circleOfRadius: 20)
+            zoomInButton.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
+            zoomInButton.strokeColor = .white
+            zoomInButton.lineWidth = 2
+            zoomInButton.position = CGPoint(x: size.width/2 - buttonPadding, y: controlBar.position.y)
+            zoomInButton.name = "zoomInButton"
+            uiLayer.addChild(zoomInButton)
+            
+            let zoomInLabel = SKLabelNode(fontNamed: "Copperplate")
+            zoomInLabel.text = "+"
+            zoomInLabel.fontSize = 24
+            zoomInLabel.fontColor = .white
+            zoomInLabel.verticalAlignmentMode = .center
+            zoomInLabel.horizontalAlignmentMode = .center
+            zoomInLabel.position = zoomInButton.position
+            uiLayer.addChild(zoomInLabel)
+            
+            // Zoom out button (right)
+            let zoomOutButton = SKShapeNode(circleOfRadius: 20)
+            zoomOutButton.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
+            zoomOutButton.strokeColor = .white
+            zoomOutButton.lineWidth = 2
+            zoomOutButton.position = CGPoint(x: size.width/2 + buttonPadding, y: controlBar.position.y)
+            zoomOutButton.name = "zoomOutButton"
+            uiLayer.addChild(zoomOutButton)
+            
+            let zoomOutLabel = SKLabelNode(fontNamed: "Copperplate")
+            zoomOutLabel.text = "−" // en dash for better appearance
+            zoomOutLabel.fontSize = 24
+            zoomOutLabel.fontColor = .white
+            zoomOutLabel.verticalAlignmentMode = .center
+            zoomOutLabel.horizontalAlignmentMode = .center
+            zoomOutLabel.position = zoomOutButton.position
+            uiLayer.addChild(zoomOutLabel)
+            
+            // Reset view button (center)
+            let resetButton = SKShapeNode(rectOf: CGSize(width: 120, height: 36), cornerRadius: 18)
+            resetButton.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.8)
+            resetButton.strokeColor = .white
+            resetButton.lineWidth = 1.5
+            resetButton.position = CGPoint(x: size.width/2, y: controlBar.position.y)
+            resetButton.name = "resetViewButton"
+            uiLayer.addChild(resetButton)
+            
+            let resetLabel = SKLabelNode(fontNamed: "Copperplate")
+            resetLabel.text = "Reset View"
+            resetLabel.fontSize = 14
+            resetLabel.fontColor = .white
+            resetLabel.verticalAlignmentMode = .center
+            resetLabel.horizontalAlignmentMode = .center
+            resetLabel.position = resetButton.position
+            uiLayer.addChild(resetLabel)
+            
+            // Help button (top left) - safely positioned
+            let helpButton = SKShapeNode(circleOfRadius: 18)
+            helpButton.fillColor = SKColor(red: 0.2, green: 0.2, blue: 0.4, alpha: 0.9)
+            helpButton.strokeColor = .white
+            helpButton.lineWidth = 1.5
+            helpButton.position = CGPoint(x: 30, y: size.height - (40 + safeAreaTop))
+            helpButton.name = "helpButton"
+            uiLayer.addChild(helpButton)
+            
+            let helpLabel = SKLabelNode(fontNamed: "Copperplate")
+            helpLabel.text = "?"
+            helpLabel.fontSize = 18
+            helpLabel.fontColor = .white
+            helpLabel.verticalAlignmentMode = .center
+            helpLabel.horizontalAlignmentMode = .center
+            helpLabel.position = helpButton.position
+            uiLayer.addChild(helpLabel)
+        }
     
     private func createZoomButton(_ symbol: String, position: CGPoint, name: String) {
         let button = SKShapeNode(circleOfRadius: 20)
@@ -755,7 +858,7 @@ class CelestialRealmScene: SKScene {
         }
     }
     
-    private func moveToNode(_ node: WorldNode) {
+    internal func moveToNode(_ node: WorldNode) {
         // Update current node in the model using our new public method
         celestialRealm.moveToNode(withID: node.id)
         
