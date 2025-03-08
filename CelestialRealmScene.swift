@@ -1008,7 +1008,7 @@ class CelestialRealmScene: SKScene {
     
     
             
-            private func handlePhaseShift() {
+           internal func handlePhaseShift() {
                 // Call model to shift phase
                 celestialRealm.shiftPhase()
                 
@@ -1053,7 +1053,7 @@ class CelestialRealmScene: SKScene {
                 }
             }
             
-            private func resetView() {
+    internal func resetView() {
                 // Reset world container position and scale with animation
                 let moveAction = SKAction.move(to: CGPoint(x: size.width/2, y: size.height/2), duration: 0.5)
                 let scaleAction = SKAction.scale(to: 1.0, duration: 0.5)
