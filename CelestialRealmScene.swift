@@ -640,7 +640,7 @@ class CelestialRealmScene: SKScene {
         }
     }
     
-    private func updateInfoPanel(with node: WorldNode?) {
+    internal func updateInfoPanel(with node: WorldNode?) {
         guard let panel = uiLayer.childNode(withName: "infoPanel") else { return }
         
         let title = panel.childNode(withName: "infoTitle") as? SKLabelNode
@@ -882,7 +882,7 @@ class CelestialRealmScene: SKScene {
         run(moveAction)
     }
     
-    private func showMovementEffect(to node: WorldNode) {
+    internal func showMovementEffect(to node: WorldNode) {
         // Get target node sprite
         guard let targetSprite = nodeSprites[node.id] else { return }
         

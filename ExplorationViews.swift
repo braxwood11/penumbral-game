@@ -30,11 +30,12 @@ class ExplorationCardView: SKNode {
     }
     
     private func setupCardView() {
-        let cardWidth: CGFloat = 120
-        let cardHeight: CGFloat = 170
+        // Reduce card dimensions from 120x170 to 100x140
+        let cardWidth: CGFloat = 100  // Reduced from 120
+        let cardHeight: CGFloat = 140  // Reduced from 170
         
         // Card background
-        background = SKShapeNode(rectOf: CGSize(width: cardWidth, height: cardHeight), cornerRadius: 10)
+        background = SKShapeNode(rectOf: CGSize(width: cardWidth, height: cardHeight), cornerRadius: 8)
         
         // Set card color based on valid realm
         if card.validRealms.contains(.dawn) {
@@ -49,38 +50,38 @@ class ExplorationCardView: SKNode {
         
         // Add rarity border
         background.strokeColor = card.rarity.color
-        background.lineWidth = card.rarity == .common ? 2 : 3
+        background.lineWidth = card.rarity == .common ? 1.5 : 2.5  // Slightly reduced from 2:3
         addChild(background)
         
-        // Card name
+        // Card name - smaller font
         let nameLabel = SKLabelNode(fontNamed: "Copperplate")
         nameLabel.text = card.name
-        nameLabel.fontSize = 16
+        nameLabel.fontSize = 14  // Reduced from 16
         nameLabel.fontColor = .black
-        nameLabel.position = CGPoint(x: 0, y: cardHeight/2 - 25)
+        nameLabel.position = CGPoint(x: 0, y: cardHeight/2 - 20)  // Adjusted position
         addChild(nameLabel)
         
-        // Card type icon
+        // Card type icon - smaller size
         let iconNode = SKSpriteNode(texture: getIconTexture(for: card.cardType))
-        iconNode.size = CGSize(width: 40, height: 40)
-        iconNode.position = CGPoint(x: 0, y: 20)
+        iconNode.size = CGSize(width: 32, height: 32)  // Reduced from 40x40
+        iconNode.position = CGPoint(x: 0, y: 15)  // Adjusted position
         addChild(iconNode)
         
-        // Card description (multi-line)
+        // Card description (multi-line) - smaller font
         let description = SKLabelNode(fontNamed: "Copperplate")
         description.text = card.description
-        description.fontSize = 12
+        description.fontSize = 10  // Reduced from 12
         description.fontColor = .black
-        description.preferredMaxLayoutWidth = cardWidth - 20
+        description.preferredMaxLayoutWidth = cardWidth - 15  // Adjusted for smaller width
         description.numberOfLines = 0
         description.verticalAlignmentMode = .center
-        description.position = CGPoint(x: 0, y: -40)
+        description.position = CGPoint(x: 0, y: -35)  // Adjusted position
         addChild(description)
         
-        // Realm icons (showing where card can be used)
+        // Realm icons (showing where card can be used) - smaller size
         let realmIconsNode = SKNode()
-        let realmIconSize: CGFloat = 15
-        let totalWidth = CGFloat(card.validRealms.count) * realmIconSize + CGFloat(max(0, card.validRealms.count - 1)) * 5
+        let realmIconSize: CGFloat = 12  // Reduced from 15
+        let totalWidth = CGFloat(card.validRealms.count) * realmIconSize + CGFloat(max(0, card.validRealms.count - 1)) * 4  // Reduced spacing from 5 to 4
         var currentX = -totalWidth / 2 + realmIconSize / 2
         
         for realm in card.validRealms {
@@ -88,19 +89,19 @@ class ExplorationCardView: SKNode {
             realmIcon.fillColor = realm.color
             realmIcon.strokeColor = .white
             realmIcon.lineWidth = 1
-            realmIcon.position = CGPoint(x: currentX, y: -cardHeight/2 + 15)
+            realmIcon.position = CGPoint(x: currentX, y: -cardHeight/2 + 12)  // Adjusted position
             realmIconsNode.addChild(realmIcon)
             
-            currentX += realmIconSize + 5
+            currentX += realmIconSize + 4  // Reduced spacing from 5 to 4
         }
         
         addChild(realmIconsNode)
         
         // Add invisible selection glow (will be shown when selected)
-        selectionGlow = SKShapeNode(rectOf: CGSize(width: cardWidth + 10, height: cardHeight + 10), cornerRadius: 12)
+        selectionGlow = SKShapeNode(rectOf: CGSize(width: cardWidth + 8, height: cardHeight + 8), cornerRadius: 10)  // Reduced padding from 10 to 8
         selectionGlow.fillColor = .clear
         selectionGlow.strokeColor = .white
-        selectionGlow.lineWidth = 3
+        selectionGlow.lineWidth = 2
         selectionGlow.alpha = 0
         addChild(selectionGlow)
     }
@@ -149,7 +150,7 @@ class ExplorationCardView: SKNode {
 
 class ExplorationHandView: SKNode {
     private var cards: [ExplorationCardView] = []
-    private var cardSpacing: CGFloat = 20
+    private var cardSpacing: CGFloat = 12
     private var selectedCardIndex: Int? = nil
     private var targetingMode = false
     
@@ -176,7 +177,7 @@ class ExplorationHandView: SKNode {
     // Calculate position for a card in the hand
     private func cardPosition(for index: Int, in total: Int) -> CGPoint {
         // Calculate the total width needed for all cards
-        let cardWidth: CGFloat = 120
+        let cardWidth: CGFloat = 100  // Updated from 120
         let totalWidth = cardWidth * CGFloat(total) + cardSpacing * CGFloat(total - 1)
         let startX = -totalWidth / 2 + cardWidth / 2
         
