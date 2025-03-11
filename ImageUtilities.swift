@@ -52,12 +52,12 @@ class ImageUtilities {
             "reveal_icon": .green,
             "phase_icon": .orange,
             "special_icon": .red,
-            "crossed-swords": .red,
-            "forge": .brown,
-            "speech-bubble": .cyan,
-            "merchant": .yellow,
-            "question-mark": .purple,
-            "nexus-crystal": .white
+            "battle-icon": .red,
+            "forge-icon": .brown,
+            "narrative-icon": .cyan,
+            "shop-icon": .yellow,
+            "mystery-icon": .purple,
+            "nexus-icon": .white
         ]
         
         let color = colors[name] ?? .gray

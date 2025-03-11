@@ -38,163 +38,177 @@ class BattleNodeScreen: NodeInteractionScreen {
         let contentHeight = contentArea.userData?.value(forKey: "contentHeight") as? CGFloat ?? 400
         let scale = contentArea.userData?.value(forKey: "contentScale") as? CGFloat ?? 1.0
         
-        // Create a better structured layout with two columns
+        // ---- TOP SECTION: CHARACTER PORTRAIT (CENTERED) ----
+        // Create a container for the enemy preview (similar to character portrait in NarrativeNode)
+        let portraitContainer = SKNode()
+        portraitContainer.position = CGPoint(x: 0, y: contentHeight/2 - 130) // Centered at top
+        contentArea.addChild(portraitContainer)
         
-        // ---- TOP SECTION: DIFFICULTY INDICATOR ----
-        // Create a more visual difficulty indicator with actual stars
-        let difficultyBg = SKShapeNode(rectOf: CGSize(width: contentWidth - 80, height: 40), cornerRadius: 8)
-        difficultyBg.fillColor = SKColor(red: 0.15, green: 0.15, blue: 0.25, alpha: 0.7)
-        difficultyBg.strokeColor = node.realm.color.withAlphaComponent(0.5)
-        difficultyBg.lineWidth = 1.5
-        difficultyBg.position = CGPoint(x: 0, y: contentHeight/2 - 60)
-        contentArea.addChild(difficultyBg)
+        // Portrait frame with better styling (similar to NarrativeNode)
+        let frameSize: CGFloat = 110 * scale
+        let portraitFrame = SKShapeNode(circleOfRadius: frameSize/2)
+        portraitFrame.fillColor = node.realm.color.withAlphaComponent(0.3)
+        portraitFrame.strokeColor = node.realm.color
+        portraitFrame.lineWidth = 3
+        portraitFrame.position = CGPoint.zero
+        portraitContainer.addChild(portraitFrame)
         
-        // Create visual stars instead of text
-        let starSpacing: CGFloat = 24 * scale
-        let totalStarsWidth = starSpacing * CGFloat(difficulty) - 4
-        let startX = -totalStarsWidth/2 + starSpacing/2
+        // Create enemy silhouette based on enemy type
+        let silhouette = SKNode()
         
-        let difficultyLabel = SKLabelNode(fontNamed: "Copperplate")
-        difficultyLabel.text = "Difficulty:"
-        difficultyLabel.fontSize = 16 * scale
-        difficultyLabel.fontColor = .white
-        difficultyLabel.position = CGPoint(x: -difficultyBg.frame.width/4, y: difficultyBg.position.y)
-        difficultyLabel.verticalAlignmentMode = .center
-        contentArea.addChild(difficultyLabel)
-        
-        for i in 0..<difficulty {
-            let star = SKSpriteNode(imageNamed: "star-icon")
-            if star.texture == nil {
-                // Create a star shape if image is missing
-                let starNode = SKShapeNode(rectOf: CGSize(width: 18 * scale, height: 18 * scale), cornerRadius: 2)
-                starNode.fillColor = SKColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 1.0)
-                starNode.strokeColor = SKColor(red: 1.0, green: 0.9, blue: 0.3, alpha: 1.0)
-                starNode.lineWidth = 1
-                starNode.position = CGPoint(x: startX + starSpacing * CGFloat(i), y: difficultyBg.position.y)
-                contentArea.addChild(starNode)
-            } else {
-                star.size = CGSize(width: 18 * scale, height: 18 * scale)
-                star.position = CGPoint(x: startX + starSpacing * CGFloat(i), y: difficultyBg.position.y)
-                contentArea.addChild(star)
-            }
-        }
-        
-        // ---- LEFT SIDE: ENEMY PREVIEW ----
-        // Create a more visually appealing enemy preview panel
-        let previewWidth: CGFloat = 140 * scale
-        let previewHeight: CGFloat = 200 * scale
-        let enemyPreview = SKShapeNode(rectOf: CGSize(width: previewWidth, height: previewHeight), cornerRadius: 12)
-        enemyPreview.fillColor = node.realm.color.withAlphaComponent(0.2)
-        enemyPreview.strokeColor = node.realm.color
-        enemyPreview.lineWidth = 2
-        enemyPreview.position = CGPoint(x: -contentWidth/4, y: -20)
-        contentArea.addChild(enemyPreview)
-        
-        // Enemy silhouette - more interesting than a basic shape
-        let silhouette = SKShapeNode()
-        
-        // Create a more interesting enemy silhouette based on type
         if enemyType.lowercased().contains("guardian") {
             // Guardian - shield and sword silhouette
-            let path = CGMutablePath()
+            let shield = SKShapeNode()
+            let shieldPath = CGMutablePath()
             let shieldWidth = 50.0 * scale
             let shieldHeight = 70.0 * scale
-            path.addRoundedRect(in: CGRect(x: -shieldWidth/2, y: -shieldHeight/2, width: shieldWidth, height: shieldHeight),
-                              cornerWidth: 15, cornerHeight: 15)
+            shieldPath.addRoundedRect(in: CGRect(x: -shieldWidth/2, y: -shieldHeight/2, width: shieldWidth, height: shieldHeight),
+                                      cornerWidth: 15, cornerHeight: 15)
             
             // Add sword
-            path.move(to: CGPoint(x: shieldWidth/2 - 5, y: -10))
-            path.addLine(to: CGPoint(x: shieldWidth/2 + 20, y: -shieldHeight/2 - 20))
-            path.addLine(to: CGPoint(x: shieldWidth/2 + 15, y: -shieldHeight/2 - 25))
-            path.addLine(to: CGPoint(x: shieldWidth/2 - 10, y: -15))
-            path.closeSubpath()
+            shieldPath.move(to: CGPoint(x: shieldWidth/2 - 5, y: -10))
+            shieldPath.addLine(to: CGPoint(x: shieldWidth/2 + 20, y: -shieldHeight/2 - 20))
+            shieldPath.addLine(to: CGPoint(x: shieldWidth/2 + 15, y: -shieldHeight/2 - 25))
+            shieldPath.addLine(to: CGPoint(x: shieldWidth/2 - 10, y: -15))
+            shieldPath.closeSubpath()
             
-            silhouette.path = path
+            shield.path = shieldPath
+            shield.fillColor = .black
+            shield.strokeColor = node.realm.color
+            shield.lineWidth = 2
+            silhouette.addChild(shield)
+            
         } else if enemyType.lowercased().contains("stalker") {
             // Stalker - hunched figure silhouette
-            let path = CGMutablePath()
-            // Head
-            path.addEllipse(in: CGRect(x: -15, y: 20, width: 30, height: 30))
-            // Body - hunched
-            path.move(to: CGPoint(x: 0, y: 20))
-            path.addQuadCurve(to: CGPoint(x: 0, y: -25), control: CGPoint(x: 25, y: 0))
-            // Arms
-            path.move(to: CGPoint(x: 0, y: 5))
-            path.addLine(to: CGPoint(x: -25, y: -15))
-            path.move(to: CGPoint(x: 0, y: 5))
-            path.addLine(to: CGPoint(x: 20, y: -20))
-            // Legs
-            path.move(to: CGPoint(x: 0, y: -25))
-            path.addLine(to: CGPoint(x: -15, y: -50))
-            path.move(to: CGPoint(x: 0, y: -25))
-            path.addLine(to: CGPoint(x: 15, y: -50))
+            let head = SKShapeNode(circleOfRadius: 15)
+            head.fillColor = .black
+            head.strokeColor = node.realm.color
+            head.lineWidth = 1.5
+            head.position = CGPoint(x: 0, y: 20)
+            silhouette.addChild(head)
             
-            silhouette.path = path
+            // Hunched body
+            let body = SKShapeNode()
+            let bodyPath = CGMutablePath()
+            bodyPath.move(to: CGPoint(x: 0, y: 20))
+            bodyPath.addQuadCurve(to: CGPoint(x: 0, y: -25), control: CGPoint(x: 25, y: 0))
+            
+            // Arms
+            bodyPath.move(to: CGPoint(x: 0, y: 5))
+            bodyPath.addLine(to: CGPoint(x: -25, y: -15))
+            bodyPath.move(to: CGPoint(x: 0, y: 5))
+            bodyPath.addLine(to: CGPoint(x: 20, y: -20))
+            
+            // Legs
+            bodyPath.move(to: CGPoint(x: 0, y: -25))
+            bodyPath.addLine(to: CGPoint(x: -15, y: -50))
+            bodyPath.move(to: CGPoint(x: 0, y: -25))
+            bodyPath.addLine(to: CGPoint(x: 15, y: -50))
+            
+            body.path = bodyPath
+            body.strokeColor = node.realm.color
+            body.lineWidth = 2
+            silhouette.addChild(body)
+            
         } else {
-            // Default - warrior silhouette
-            let path = CGMutablePath()
-            // Head
-            path.addEllipse(in: CGRect(x: -20, y: 30, width: 40, height: 40))
-            // Body
-            path.move(to: CGPoint(x: 0, y: 30))
-            path.addLine(to: CGPoint(x: 0, y: -20))
-            // Arms
-            path.move(to: CGPoint(x: 0, y: 20))
-            path.addLine(to: CGPoint(x: -30, y: 0))
-            path.move(to: CGPoint(x: 0, y: 20))
-            path.addLine(to: CGPoint(x: 30, y: 0))
-            // Legs
-            path.move(to: CGPoint(x: 0, y: -20))
-            path.addLine(to: CGPoint(x: -20, y: -60))
-            path.move(to: CGPoint(x: 0, y: -20))
-            path.addLine(to: CGPoint(x: 20, y: -60))
+            // Default warrior
+            let head = SKShapeNode(circleOfRadius: 18)
+            head.fillColor = .black
+            head.strokeColor = node.realm.color
+            head.lineWidth = 2
+            head.position = CGPoint(x: 0, y: 15)
+            silhouette.addChild(head)
             
-            silhouette.path = path
+            // Body
+            let body = SKShapeNode()
+            let bodyPath = CGMutablePath()
+            bodyPath.move(to: CGPoint(x: 0, y: -3))
+            bodyPath.addLine(to: CGPoint(x: 0, y: -30))
+            
+            // Arms
+            bodyPath.move(to: CGPoint(x: 0, y: -10))
+            bodyPath.addLine(to: CGPoint(x: -30, y: 0))
+            bodyPath.move(to: CGPoint(x: 0, y: -10))
+            bodyPath.addLine(to: CGPoint(x: 30, y: 0))
+            
+            // Legs
+            bodyPath.move(to: CGPoint(x: 0, y: -30))
+            bodyPath.addLine(to: CGPoint(x: -20, y: -60))
+            bodyPath.move(to: CGPoint(x: 0, y: -30))
+            bodyPath.addLine(to: CGPoint(x: 20, y: -60))
+            
+            body.path = bodyPath
+            body.strokeColor = node.realm.color
+            body.lineWidth = 2
+            silhouette.addChild(body)
         }
         
-        silhouette.strokeColor = .white
-        silhouette.lineWidth = 2
-        silhouette.fillColor = node.realm.color.withAlphaComponent(0.4)
-        silhouette.position = CGPoint(x: 0, y: 15)
-        enemyPreview.addChild(silhouette)
+        silhouette.position = CGPoint(x: 0, y: 0)
+        portraitFrame.addChild(silhouette)
         
-        // Add realm indicator
-        let realmCircle = SKShapeNode(circleOfRadius: 10 * scale)
-        realmCircle.fillColor = node.realm.color
-        realmCircle.strokeColor = .white
-        realmCircle.lineWidth = 1
-        realmCircle.position = CGPoint(x: -previewWidth/2 + 20, y: previewHeight/2 - 20)
-        enemyPreview.addChild(realmCircle)
+        // ---- DIFFICULTY INDICATOR (UNDER PORTRAIT) ----
+                // Create nameplate under portrait (similar to NarrativeNode)
+                let nameBg = SKShapeNode(rectOf: CGSize(width: frameSize + 60, height: 30), cornerRadius: 8)
+                nameBg.fillColor = node.realm.color.withAlphaComponent(0.5)
+                nameBg.strokeColor = node.realm.color
+                nameBg.lineWidth = 1
+                nameBg.position = CGPoint(x: 0, y: -frameSize/2 - 25)
+                portraitContainer.addChild(nameBg)
+                
+                // Create difficulty stars in the nameplate - with better spacing
+                // Calculate width needed for "Difficulty:" text
+                let difficultyText = "Difficulty:"
+                let tempLabel = SKLabelNode(fontNamed: "Copperplate")
+                tempLabel.text = difficultyText
+                tempLabel.fontSize = 14 * scale
+                
+                // Get the width of the text for proper positioning
+                let textWidth = tempLabel.frame.width
+                
+                // Position the difficulty label with proper alignment
+                let diffLabel = SKLabelNode(fontNamed: "Copperplate")
+                diffLabel.text = difficultyText
+                diffLabel.fontSize = 14 * scale
+                diffLabel.fontColor = .white
+                diffLabel.verticalAlignmentMode = .center
+                diffLabel.horizontalAlignmentMode = .center
+                
+                // Calculate position to ensure text is centered and stars don't overlap
+                // We'll position this based on how many stars we need to show
+                let diffLabelX = -nameBg.frame.width/2 + textWidth/2 + 10  // 10px padding from left edge
+                diffLabel.position = CGPoint(x: diffLabelX, y: nameBg.position.y)
+                portraitContainer.addChild(diffLabel)
+                
+                // Add stars with proper spacing
+                let starSize: CGFloat = 10 * scale  // Slightly smaller stars
+                let starSpacing: CGFloat = 12 * scale  // Tighter spacing
+                let starY = nameBg.position.y
+                // Position first star after the text with proper padding
+                let starStartX = diffLabelX + textWidth/2 + starSize/2 + 8  // 8px padding between text and stars
+                
+                for i in 0..<difficulty {
+                    let star = SKShapeNode(rectOf: CGSize(width: starSize, height: starSize), cornerRadius: 2)
+                    star.fillColor = SKColor(red: 1.0, green: 0.8, blue: 0.0, alpha: 1.0)
+                    star.strokeColor = SKColor(red: 1.0, green: 0.9, blue: 0.3, alpha: 1.0)
+                    star.lineWidth = 1
+                    star.position = CGPoint(x: starStartX + starSpacing * CGFloat(i), y: starY)
+                    portraitContainer.addChild(star)
+                }
         
-        // Enemy type label with better styling
-        let typeBackground = SKShapeNode(rectOf: CGSize(width: previewWidth - 20, height: 30), cornerRadius: 8)
-        typeBackground.fillColor = SKColor.black.withAlphaComponent(0.3)
-        typeBackground.strokeColor = .clear
-        typeBackground.position = CGPoint(x: 0, y: -previewHeight/2 + 25)
-        enemyPreview.addChild(typeBackground)
+        // ---- MIDDLE SECTION: BATTLE DETAILS (SIMILAR TO DIALOGUE BOX) ----
+        // Battle description box (similar styling to dialogue box in NarrativeNode)
+        let descriptionBoxWidth = contentWidth - 60
+        let descriptionBoxHeight = 150 * scale
+        let descriptionBox = SKShapeNode(rectOf: CGSize(width: descriptionBoxWidth, height: descriptionBoxHeight), cornerRadius: 15)
+        descriptionBox.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.7)
+        descriptionBox.strokeColor = node.realm.color.withAlphaComponent(0.7)
+        descriptionBox.lineWidth = 2
         
-        let typeLabel = SKLabelNode(fontNamed: "Copperplate")
-        typeLabel.text = enemyType
-        typeLabel.fontSize = 16 * scale
-        typeLabel.fontColor = .white
-        typeLabel.position = typeBackground.position
-        typeLabel.verticalAlignmentMode = .center
-        enemyPreview.addChild(typeLabel)
+        // Position centered below portrait (similar to NarrativeNode dialogue box)
+        descriptionBox.position = CGPoint(x: 0, y: -40)
+        contentArea.addChild(descriptionBox)
         
-        // ---- RIGHT SIDE: BATTLE DESCRIPTION ----
-        let descriptionContainer = SKNode()
-        descriptionContainer.position = CGPoint(x: contentWidth/4, y: 0)
-        contentArea.addChild(descriptionContainer)
-        
-        // Background for description
-        let descBg = SKShapeNode(rectOf: CGSize(width: contentWidth/2 - 30, height: previewHeight - 40), cornerRadius: 10)
-        descBg.fillColor = SKColor(red: 0.15, green: 0.15, blue: 0.25, alpha: 0.7)
-        descBg.strokeColor = .white.withAlphaComponent(0.3)
-        descBg.lineWidth = 1
-        descBg.position = CGPoint(x: 0, y: 0)
-        descriptionContainer.addChild(descBg)
-        
-        // Battle description with better wrapping and font
+        // Battle description with better styling and positioning
         let description: String
         if difficulty <= 2 {
             description = "A \(enemyType) approaches! This foe uses basic tactics and straightforward attacks. Victory should be within reach if you play your cards wisely."
@@ -206,79 +220,48 @@ class BattleNodeScreen: NodeInteractionScreen {
         
         let descriptionText = SKLabelNode(fontNamed: "Copperplate")
         descriptionText.text = description
-        descriptionText.fontSize = 14 * scale
+        descriptionText.fontSize = 16 * scale
         descriptionText.fontColor = .white
-        descriptionText.preferredMaxLayoutWidth = contentWidth/2 - 50
-        descriptionText.numberOfLines = 0
         descriptionText.verticalAlignmentMode = .center
-        descriptionText.position = CGPoint(x: 0, y: 10)
-        descriptionContainer.addChild(descriptionText)
+        descriptionText.horizontalAlignmentMode = .center
+        descriptionText.preferredMaxLayoutWidth = descriptionBoxWidth - 40
+        descriptionText.numberOfLines = 0
+        descriptionText.position = CGPoint(x: 0, y: 0)
+        descriptionBox.addChild(descriptionText)
         
-        // Section label with battle tactics
-        let tacticsLabel = SKLabelNode(fontNamed: "Copperplate")
-        tacticsLabel.text = "Recommended Tactics:"
-        tacticsLabel.fontSize = 15 * scale
-        tacticsLabel.fontColor = node.realm.color
-        tacticsLabel.position = CGPoint(x: 0, y: -previewHeight/2 + 60)
-        descriptionContainer.addChild(tacticsLabel)
-        
-        // Tactical tip based on enemy type
-        let tacticalTip: String
-        if enemyType.lowercased().contains("guardian") {
-            tacticalTip = "• Favor Dusk cards to penetrate defenses"
-        } else if enemyType.lowercased().contains("stalker") {
-            tacticalTip = "• Use Dawn cards to outpace their strikes"
-        } else {
-            tacticalTip = "• Balance all suits for a versatile approach"
-        }
-        
-        let tipLabel = SKLabelNode(fontNamed: "Copperplate")
-        tipLabel.text = tacticalTip
-        tipLabel.fontSize = 13 * scale
-        tipLabel.fontColor = .white
-        tipLabel.position = CGPoint(x: 0, y: -previewHeight/2 + 40)
-        descriptionContainer.addChild(tipLabel)
         
         // ---- BOTTOM SECTION: BEGIN BATTLE BUTTON ----
-        // More prominent battle button with animation
+        // Begin battle button with same styling as continue button in NarrativeNode
         let buttonWidth: CGFloat = 180 * scale
         let buttonHeight: CGFloat = 44 * scale
-        let beginButton = SKShapeNode(rectOf: CGSize(width: buttonWidth, height: buttonHeight), cornerRadius: 12)
-        beginButton.fillColor = SKColor(red: 0.7, green: 0.2, blue: 0.2, alpha: 0.8)
-        beginButton.strokeColor = .white
-        beginButton.lineWidth = 2
-        beginButton.position = CGPoint(x: 0, y: -contentHeight/2 + 50)
-        beginButton.name = "beginBattleButton"
-        contentArea.addChild(beginButton)
+        let continueButton = SKShapeNode(rectOf: CGSize(width: buttonWidth, height: buttonHeight), cornerRadius: 10)
+        continueButton.fillColor = node.realm.color.withAlphaComponent(0.6)
+        continueButton.strokeColor = .white
+        continueButton.lineWidth = 1.5
         
-        // Button text with icon
-        let buttonLabel = SKLabelNode(fontNamed: "Copperplate-Bold")
-        buttonLabel.text = "Begin Battle"
-        buttonLabel.fontSize = 18 * scale
-        buttonLabel.fontColor = .white
-        buttonLabel.verticalAlignmentMode = .center
-        buttonLabel.position = beginButton.position
-        contentArea.addChild(buttonLabel)
+        // Position to have good spacing from bottom of screen (similar to NarrativeNode)
+        continueButton.position = CGPoint(x: 0, y: -contentHeight/2 + 100)
+        continueButton.name = "beginBattleButton"
+        contentArea.addChild(continueButton)
         
-        // Add a subtle glowing effect to the button
-        let buttonGlow = SKShapeNode(rectOf: CGSize(width: buttonWidth + 10, height: buttonHeight + 10), cornerRadius: 14)
-        buttonGlow.strokeColor = SKColor(red: 1.0, green: 0.3, blue: 0.3, alpha: 0.7)
-        buttonGlow.lineWidth = 3
-        buttonGlow.fillColor = .clear
-        buttonGlow.position = beginButton.position
-        buttonGlow.alpha = 0.7
-        buttonGlow.zPosition = -1
-        contentArea.addChild(buttonGlow)
+        let continueLabel = SKLabelNode(fontNamed: "Copperplate")
+        continueLabel.text = "Begin Battle"
+        continueLabel.fontSize = 18 * scale
+        continueLabel.fontColor = .white
+        continueLabel.verticalAlignmentMode = .center
+        continueLabel.position = continueButton.position
+        contentArea.addChild(continueLabel)
         
-        // Add a pulsing animation to the button and glow
-        beginButton.run(SKAction.repeatForever(SKAction.sequence([
+        // Add subtle pulsing animation to the button
+        continueButton.run(SKAction.repeatForever(SKAction.sequence([
             SKAction.scale(to: 1.05, duration: 0.8),
             SKAction.scale(to: 1.0, duration: 0.8)
         ])))
         
-        buttonGlow.run(SKAction.repeatForever(SKAction.sequence([
-            SKAction.fadeAlpha(to: 0.3, duration: 0.8),
-            SKAction.fadeAlpha(to: 0.7, duration: 0.8)
+        // Add subtle animation to enemy portrait (matches character portrait in NarrativeNode)
+        portraitContainer.run(SKAction.repeatForever(SKAction.sequence([
+            SKAction.moveBy(x: 0, y: 3, duration: 1.5),
+            SKAction.moveBy(x: 0, y: -3, duration: 1.5)
         ])))
     }
     
@@ -287,10 +270,10 @@ class BattleNodeScreen: NodeInteractionScreen {
             return true
         }
         
-        // Check for begin battle button touch
+        // Check for battle button press
         if let beginButton = contentArea.childNode(withName: "beginBattleButton") {
             if beginButton.contains(convert(location, to: contentArea)) {
-                // Add a button press effect
+                // Add button press effect
                 beginButton.run(SKAction.sequence([
                     SKAction.scale(to: 0.95, duration: 0.1),
                     SKAction.scale(to: 1.0, duration: 0.1),
@@ -1551,78 +1534,315 @@ class NexusNodeScreen: NodeInteractionScreen {
     }
     
     override func setupSpecificContent() {
-        // Nexus description
-        let description = "You stand at the central Nexus, where all realms converge. From here, you can access any area of the Celestial Realm or prepare for your journey."
-        let descriptionText = createInfoText(
-            text: description,
-            maxWidth: screenWidth - 120,
-            position: CGPoint(x: 0, y: 80)
-        )
+        // Get content dimensions for proper scaling
+        let contentWidth = contentArea.userData?.value(forKey: "contentWidth") as? CGFloat ?? 300
+        let contentHeight = contentArea.userData?.value(forKey: "contentHeight") as? CGFloat ?? 400
+        let scale = contentArea.userData?.value(forKey: "contentScale") as? CGFloat ?? 1.0
+        
+        // ---- TOP SECTION: NEXUS VISUALIZATION ----
+        // Create nexus crystal visualization at the top
+        let nexusContainer = SKNode()
+        nexusContainer.position = CGPoint(x: 0, y: contentHeight/2 - 120)
+        contentArea.addChild(nexusContainer)
+        
+        // Central nexus crystal
+        let crystalSize: CGFloat = 50 * scale
+        let crystal = SKShapeNode(rectOf: CGSize(width: crystalSize, height: crystalSize * 1.5), cornerRadius: 3)
+        crystal.fillColor = SKColor.white.withAlphaComponent(0.5)
+        crystal.strokeColor = .white
+        crystal.lineWidth = 2
+        crystal.position = CGPoint.zero
+        crystal.zRotation = CGFloat.pi / 4  // 45-degree rotation for diamond shape
+        nexusContainer.addChild(crystal)
+        
+        // Inner crystal glow
+        let innerGlow = SKShapeNode(rectOf: CGSize(width: crystalSize * 0.6, height: crystalSize * 0.9), cornerRadius: 2)
+        innerGlow.fillColor = SKColor.white.withAlphaComponent(0.8)
+        innerGlow.strokeColor = .clear
+        innerGlow.position = CGPoint.zero
+        innerGlow.zRotation = CGFloat.pi / 4
+        crystal.addChild(innerGlow)
+        
+        // Add gentle pulsing animation to crystal
+        crystal.run(SKAction.repeatForever(SKAction.sequence([
+            SKAction.scale(to: 1.1, duration: 1.5),
+            SKAction.scale(to: 1.0, duration: 1.5)
+        ])))
+        
+        // Add energy beams connecting to realm indicators
+        let beamContainer = SKNode()
+        beamContainer.position = CGPoint.zero
+        nexusContainer.addChild(beamContainer)
+        
+        // Crystal description
+        let crystalLabel = SKLabelNode(fontNamed: "Copperplate")
+        crystalLabel.text = "Nexus Crystal"
+        crystalLabel.fontSize = 14 * scale
+        crystalLabel.fontColor = .white
+        crystalLabel.position = CGPoint(x: 0, y: -crystalSize - 5)
+        nexusContainer.addChild(crystalLabel)
+        
+        // ---- MIDDLE SECTION: REALM SELECTOR ----
+        // Description text
+        let description = "You stand at the central Nexus, where all realms converge. From here, you can travel to any area or shift the phase of the Celestial Realm."
+        let descriptionText = SKLabelNode(fontNamed: "Copperplate")
+        descriptionText.text = description
+        descriptionText.fontSize = 16 * scale
+        descriptionText.fontColor = .white
+        descriptionText.preferredMaxLayoutWidth = contentWidth - 60
+        descriptionText.numberOfLines = 0
+        descriptionText.verticalAlignmentMode = .center
+        descriptionText.position = CGPoint(x: 0, y: contentHeight/2 - 250)
         contentArea.addChild(descriptionText)
         
-        // Realm indicators in a circle
-        let realmIcons = SKNode()
-        realmIcons.position = CGPoint(x: 0, y: 0)
-        contentArea.addChild(realmIcons)
+        // Create realm selection panel (similar to dialogue box in NarrativeNode)
+        let realmPanelWidth = contentWidth - 60
+        let realmPanelHeight = 140 * scale
+        let realmPanel = SKShapeNode(rectOf: CGSize(width: realmPanelWidth, height: realmPanelHeight), cornerRadius: 15)
+        realmPanel.fillColor = SKColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.7)
+        realmPanel.strokeColor = .white.withAlphaComponent(0.7)
+        realmPanel.lineWidth = 2
+        realmPanel.position = CGPoint(x: 0, y: -95)
+        contentArea.addChild(realmPanel)
+        
+        // Add "Current Phase" label to the top of the panel
+        let phaseLabel = SKLabelNode(fontNamed: "Copperplate")
+        phaseLabel.text = "Current Phase: \(celestialRealm!.currentPhase.rawValue.capitalized)"
+        phaseLabel.fontSize = 16 * scale
+        phaseLabel.fontColor = celestialRealm!.currentPhase.color
+        phaseLabel.position = CGPoint(x: 0, y: realmPanelHeight/2 - 25)
+        realmPanel.addChild(phaseLabel)
+        
+        // Create horizontal realm selector inside the panel
+        let realmSelector = SKNode()
+        realmSelector.position = CGPoint(x: 0, y: 0)
+        realmPanel.addChild(realmSelector)
         
         let realms = Realm.allCases
-        let radius: CGFloat = 80
+        let realmButtonWidth: CGFloat = 60 * scale
+        let realmButtonHeight: CGFloat = 70 * scale
+        let spacing: CGFloat = 15 * scale
+        let totalWidth = CGFloat(realms.count) * realmButtonWidth + CGFloat(realms.count - 1) * spacing
+        let startX = -totalWidth / 2 + realmButtonWidth / 2
         
+        // Create a button for each realm
         for (index, realm) in realms.enumerated() {
-            let angle = 2 * CGFloat.pi * CGFloat(index) / CGFloat(realms.count)
-            let x = radius * cos(angle)
-            let y = radius * sin(angle)
+            let x = startX + CGFloat(index) * (realmButtonWidth + spacing)
             
-            // Realm indicator
-            let realmNode = SKShapeNode(circleOfRadius: 25)
-            realmNode.fillColor = realm.color.withAlphaComponent(0.7)
-            realmNode.strokeColor = .white
-            realmNode.lineWidth = 2
-            realmNode.position = CGPoint(x: x, y: y)
-            realmNode.name = "realm_\(realm.rawValue)"
-            realmIcons.addChild(realmNode)
+            // Button background with realm color
+            let button = SKShapeNode(rectOf: CGSize(width: realmButtonWidth, height: realmButtonHeight), cornerRadius: 10)
+            button.fillColor = realm.color.withAlphaComponent(0.3)
+            button.strokeColor = realm.color
+            button.lineWidth = 2
+            button.position = CGPoint(x: x, y: -10)
+            button.name = "realm_\(realm.rawValue)"
+            realmSelector.addChild(button)
             
             // Realm name
             let nameLabel = SKLabelNode(fontNamed: "Copperplate")
             nameLabel.text = realm.rawValue.capitalized
-            nameLabel.fontSize = 14
+            nameLabel.fontSize = 16 * scale
             nameLabel.fontColor = .white
-            nameLabel.position = CGPoint(x: x, y: y - 40)
-            realmIcons.addChild(nameLabel)
+            nameLabel.verticalAlignmentMode = .center
+            nameLabel.position = CGPoint(x: x, y: 10)
+            realmSelector.addChild(nameLabel)
             
-            // Add glow to current realm
+            // Add symbol or icon
+            let realmSymbol = createRealmSymbol(for: realm, size: 18 * scale)
+            realmSymbol.position = CGPoint(x: x, y: -25)
+            realmSelector.addChild(realmSymbol)
+            
+            // Add highlight for current realm
             if realm == celestialRealm!.currentPhase {
-                let glow = SKShapeNode(circleOfRadius: 30)
-                glow.fillColor = .clear
-                glow.strokeColor = .white
-                glow.lineWidth = 2
-                glow.position = realmNode.position
-                glow.alpha = 0.7
-                realmIcons.addChild(glow)
+                let highlight = SKShapeNode(rectOf: CGSize(width: realmButtonWidth + 10, height: realmButtonHeight + 10), cornerRadius: 12)
+                highlight.fillColor = .clear
+                highlight.strokeColor = .white
+                highlight.lineWidth = 2
+                highlight.position = button.position
+                highlight.alpha = 0.7
+                highlight.name = "currentRealmHighlight"
+                realmSelector.addChild(highlight)
                 
-                glow.run(SKAction.repeatForever(SKAction.sequence([
+                // Add pulsing animation
+                highlight.run(SKAction.repeatForever(SKAction.sequence([
                     SKAction.fadeAlpha(to: 0.3, duration: 0.8),
                     SKAction.fadeAlpha(to: 0.7, duration: 0.8)
                 ])))
             }
         }
+    
         
-        // Nexus actions
-        let actions = ["View Status", "Prepare Deck", "Return to Battle"]
-        let buttonWidth: CGFloat = 150
-        let buttonSpacing: CGFloat = 20
-        let totalButtonWidth = buttonWidth * CGFloat(actions.count) + buttonSpacing * CGFloat(actions.count - 1)
-        let buttonStartX = -totalButtonWidth/2 + buttonWidth/2
+        // ---- BOTTOM SECTION: ACTION BUTTONS ----
+        // Create action buttons at the bottom
+        let actions = [
+            ("View Map", "viewMap", SKColor(red: 0.2, green: 0.5, blue: 0.3, alpha: 0.8)),
+            ("To Battle", "returnToBattle", SKColor(red: 0.7, green: 0.3, blue: 0.3, alpha: 0.8))
+        ]
         
-        for (i, action) in actions.enumerated() {
-            let button = createButton(
-                text: action,
-                size: CGSize(width: buttonWidth, height: 40),
-                position: CGPoint(x: buttonStartX + CGFloat(i) * (buttonWidth + buttonSpacing), y: -100)
-            )
-            button.name = "action_\(action.replacingOccurrences(of: " ", with: ""))"
+        // Calculate layout for evenly spaced buttons
+        let buttonWidth: CGFloat = 100 * scale
+        let buttonHeight: CGFloat = 40 * scale
+        let buttonSpacing: CGFloat = 20 * scale
+        let totalButtonWidth = CGFloat(actions.count) * buttonWidth + CGFloat(actions.count - 1) * buttonSpacing
+        let buttonStartX = -totalButtonWidth / 2 + buttonWidth / 2
+        
+        // Position buttons near the bottom of the content area
+        let buttonsY = -contentHeight/2 + 80
+        
+        for (index, action) in actions.enumerated() {
+            let x = buttonStartX + CGFloat(index) * (buttonWidth + buttonSpacing)
+            
+            // Button background
+            let button = SKShapeNode(rectOf: CGSize(width: buttonWidth, height: buttonHeight), cornerRadius: 10)
+            button.fillColor = action.2
+            button.strokeColor = .white
+            button.lineWidth = 1.5
+            button.position = CGPoint(x: x, y: buttonsY)
+            button.name = "action_\(action.1)"
             contentArea.addChild(button)
+            
+            // Button label
+            let buttonLabel = SKLabelNode(fontNamed: "Copperplate")
+            buttonLabel.text = action.0
+            buttonLabel.fontSize = 16 * scale
+            buttonLabel.fontColor = .white
+            buttonLabel.verticalAlignmentMode = .center
+            buttonLabel.position = button.position
+            contentArea.addChild(buttonLabel)
+            
+            // Add subtle animation to the "Return to Battle" button
+            if action.1 == "returnToBattle" {
+                button.run(SKAction.repeatForever(SKAction.sequence([
+                    SKAction.scale(to: 1.05, duration: 0.8),
+                    SKAction.scale(to: 1.0, duration: 0.8)
+                ])))
+            }
         }
+        
+        // Add energy particles flowing between nexus and realm buttons
+        addEnergyParticles(from: nexusContainer.position, to: realmPanel.position)
+    }
+    
+    private func createRealmSymbol(for realm: Realm, size: CGFloat) -> SKNode {
+        let symbolNode = SKNode()
+        
+        switch realm {
+        case .dawn:
+            // Sun symbol for Dawn
+            let sun = SKShapeNode(circleOfRadius: size/2)
+            sun.fillColor = SKColor(white: 1.0, alpha: 0.8)
+            sun.strokeColor = .clear
+            symbolNode.addChild(sun)
+            
+            // Add rays
+            let rayCount = 8
+            for i in 0..<rayCount {
+                let ray = SKShapeNode(rectOf: CGSize(width: 2, height: size * 0.7))
+                ray.fillColor = SKColor(white: 1.0, alpha: 0.8)
+                ray.strokeColor = .clear
+                ray.position = CGPoint(
+                    x: sin(CGFloat(i) * .pi * 2 / CGFloat(rayCount)) * size * 0.8,
+                    y: cos(CGFloat(i) * .pi * 2 / CGFloat(rayCount)) * size * 0.8
+                )
+                ray.zRotation = CGFloat(i) * .pi * 2 / CGFloat(rayCount)
+                symbolNode.addChild(ray)
+            }
+            
+        case .dusk:
+            // Half sun/moon for Dusk
+            let duskSymbol = SKShapeNode()
+            let path = CGMutablePath()
+            
+            // Create a circle with right half missing
+            path.addArc(center: CGPoint.zero,
+                      radius: size/2,
+                      startAngle: -.pi/2,
+                      endAngle: .pi/2,
+                      clockwise: false)
+            
+            // Complete the path with line to center
+            path.addLine(to: CGPoint.zero)
+            path.closeSubpath()
+            
+            duskSymbol.path = path
+            duskSymbol.fillColor = SKColor(white: 0.9, alpha: 0.8)
+            duskSymbol.strokeColor = .clear
+            symbolNode.addChild(duskSymbol)
+            
+        case .night:
+            // Moon for Night
+            let moonOutline = SKShapeNode(circleOfRadius: size/2)
+            moonOutline.fillColor = SKColor(white: 0.1, alpha: 0.5)
+            moonOutline.strokeColor = SKColor(white: 0.7, alpha: 0.8)
+            moonOutline.lineWidth = 1
+            symbolNode.addChild(moonOutline)
+            
+            // Add stars
+            for _ in 0..<3 {
+                let star = SKShapeNode(circleOfRadius: size/10)
+                star.fillColor = SKColor(white: 0.9, alpha: 0.8)
+                star.strokeColor = .clear
+                
+                // Random position within moon
+                let angle = CGFloat.random(in: 0...2*CGFloat.pi)
+                let distance = CGFloat.random(in: 0...(size/4))
+                star.position = CGPoint(
+                    x: cos(angle) * distance,
+                    y: sin(angle) * distance
+                )
+                symbolNode.addChild(star)
+            }
+        }
+        
+        return symbolNode
+    }
+    
+    private func addEnergyParticles(from startPoint: CGPoint, to endPoint: CGPoint) {
+        // Create a container for particles
+        let particleContainer = SKNode()
+        particleContainer.position = CGPoint.zero
+        contentArea.addChild(particleContainer)
+        
+        // Add a subtle animation to create flowing energy particles
+        let createParticle = SKAction.run {
+            // Create a particle
+            let particle = SKShapeNode(circleOfRadius: CGFloat.random(in: 1.5...3))
+            particle.fillColor = .white
+            particle.strokeColor = .clear
+            particle.alpha = CGFloat.random(in: 0.3...0.8)
+            
+            // Start at the nexus
+            particle.position = startPoint
+            
+            // Calculate a slightly randomized end position
+            let randomOffset = CGPoint(
+                x: CGFloat.random(in: -30...30),
+                y: CGFloat.random(in: -20...20)
+            )
+            let targetPosition = CGPoint(
+                x: endPoint.x + randomOffset.x,
+                y: endPoint.y + randomOffset.y
+            )
+            
+            // Add to container
+            particleContainer.addChild(particle)
+            
+            // Animate movement
+            let duration = CGFloat.random(in: 1.2...2.0)
+            particle.run(SKAction.sequence([
+                SKAction.group([
+                    SKAction.move(to: targetPosition, duration: TimeInterval(duration)),
+                    SKAction.fadeOut(withDuration: TimeInterval(duration * 0.8))
+                ]),
+                SKAction.removeFromParent()
+            ]))
+        }
+        
+        // Create particles at intervals
+        particleContainer.run(SKAction.repeatForever(SKAction.sequence([
+            createParticle,
+            SKAction.wait(forDuration: 0.2)
+        ])))
     }
     
     override func handleTouch(at location: CGPoint) -> Bool {
@@ -1630,51 +1850,98 @@ class NexusNodeScreen: NodeInteractionScreen {
             return true
         }
         
+        // Convert touch location to content area coordinates
+        let contentLocation = convert(location, to: contentArea)
+        
         // Check for realm selection
         for realm in Realm.allCases {
-            if let realmNode = contentArea.childNode(withName: "//realm_\(realm.rawValue)") {
-                if realmNode.contains(convert(location, to: realmNode.parent!)) {
-                    // Highlight the selected realm
-                    let flash = SKAction.sequence([
-                        SKAction.scale(to: 1.2, duration: 0.1),
+            let realmButtonName = "realm_\(realm.rawValue)"
+            if let realmButton = contentArea.childNode(withName: "//\(realmButtonName)") {
+                if realmButton.contains(convert(location, to: realmButton.parent!)) {
+                    // Visual feedback
+                    realmButton.run(SKAction.sequence([
+                        SKAction.scale(to: 0.9, duration: 0.1),
                         SKAction.scale(to: 1.0, duration: 0.1)
-                    ])
-                    realmNode.run(flash)
+                    ]))
                     
-                    // Change to this realm phase
-                    while celestialRealm!.currentPhase != realm {
-                        celestialRealm!.shiftPhase()
+                    // Update the game state
+                    if realm != celestialRealm!.currentPhase {
+                        // Change to this realm phase
+                        while celestialRealm!.currentPhase != realm {
+                            celestialRealm!.shiftPhase()
+                        }
+                        
+                        // Update visualization
+                        parentScene?.updateVisualization()
+                        
+                        // Flash effect for phase change
+                        let flash = SKShapeNode(rect: CGRect(x: -contentArea.frame.width/2,
+                                                            y: -contentArea.frame.height/2,
+                                                            width: contentArea.frame.width,
+                                                            height: contentArea.frame.height))
+                        flash.fillColor = realm.color.withAlphaComponent(0.3)
+                        flash.strokeColor = .clear
+                        flash.alpha = 0
+                        contentArea.addChild(flash)
+                        
+                        // Animate flash
+                        flash.run(SKAction.sequence([
+                            SKAction.fadeIn(withDuration: 0.2),
+                            SKAction.fadeOut(withDuration: 0.4),
+                            SKAction.removeFromParent()
+                        ]))
+                        
+                        // Update the phase label
+                        if let phaseLabel = contentArea.childNode(withName: "//SKLabelNode")?.childNode(withName: "//SKLabelNode") as? SKLabelNode {
+                            phaseLabel.text = "Current Phase: \(celestialRealm!.currentPhase.rawValue.capitalized)"
+                            phaseLabel.fontColor = celestialRealm!.currentPhase.color
+                        }
+                        
+                        // Move the highlight to the new current realm
+                        contentArea.childNode(withName: "//currentRealmHighlight")?.removeFromParent()
+                        
+                        let highlight = SKShapeNode(rectOf: CGSize(width: realmButton.frame.width + 10,
+                                                                   height: realmButton.frame.height + 10),
+                                                    cornerRadius: 12)
+                        highlight.fillColor = .clear
+                        highlight.strokeColor = .white
+                        highlight.lineWidth = 2
+                        highlight.position = realmButton.position
+                        highlight.alpha = 0.7
+                        highlight.name = "currentRealmHighlight"
+                        realmButton.parent?.addChild(highlight)
+                        
+                        // Add pulsing animation
+                        highlight.run(SKAction.repeatForever(SKAction.sequence([
+                            SKAction.fadeAlpha(to: 0.3, duration: 0.8),
+                            SKAction.fadeAlpha(to: 0.7, duration: 0.8)
+                        ])))
                     }
-                    
-                    // Update visualization
-                    parentScene?.updateVisualization()
                     
                     return true
                 }
             }
         }
         
-        // Check for action buttons
-        let actionNames = ["ViewStatus", "PrepareDeck", "ReturnToBattle"]
-        
-        for actionName in actionNames {
-            if let actionButton = contentArea.childNode(withName: "action_\(actionName)") {
-                if actionButton.contains(convert(location, to: contentArea)) {
-                    // Flash the button to indicate selection
-                    let flash = SKAction.sequence([
-                        SKAction.scale(to: 1.1, duration: 0.1),
-                        SKAction.scale(to: 1.0, duration: 0.1)
-                    ])
-                    actionButton.run(flash)
-                    
-                    // Handle specific actions
-                    if actionName == "ReturnToBattle" {
-                        parentScene?.dismissExploration()
-                    } else {
-                        // For other actions, just dismiss this screen for now
-                        dismiss()
-                    }
-                    
+        // Check for action button touches
+        let actionButtons = ["viewMap", "returnToBattle"]
+        for actionName in actionButtons {
+            if let button = contentArea.childNode(withName: "action_\(actionName)") {
+                if button.contains(contentLocation) {
+                    // Button press effect
+                    button.run(SKAction.sequence([
+                        SKAction.scale(to: 0.95, duration: 0.1),
+                        SKAction.scale(to: 1.0, duration: 0.1),
+                        SKAction.run { [weak self] in
+                            // Handle the action
+                            if actionName == "returnToBattle" {
+                                self?.parentScene?.dismissExploration()
+                            } else if actionName == "viewMap" {
+                                // Future map viewing functionality
+                                self?.dismiss()
+                            }
+                        }
+                    ]))
                     return true
                 }
             }

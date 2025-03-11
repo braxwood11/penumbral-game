@@ -269,12 +269,12 @@ class CelestialRealmScene: SKScene {
     
     private func getIconNameForNodeType(_ nodeType: NodeType) -> String {
         switch nodeType {
-        case .battle: return "crossed-swords"
-        case .cardRefinery: return "forge"
-        case .narrative: return "speech-bubble"
-        case .shop: return "merchant"
-        case .mystery: return "question-mark"
-        case .nexus: return "nexus-crystal"
+        case .battle: return "battle-icon"
+        case .cardRefinery: return "forge-icon"
+        case .narrative: return "narrative-icon"
+        case .shop: return "shop-icon"
+        case .mystery: return "mystery-icon"
+        case .nexus: return "nexus-icon"
         }
     }
     
