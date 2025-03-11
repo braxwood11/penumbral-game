@@ -115,30 +115,25 @@ class EnhancedExplorationViewController: UIViewController {
         }
     }
     
-    // Call this to return to the main game
     func returnToGame() {
-        // First show a return animation
-        showReturnTransition { [weak self] in
-            // Make sure we're on the main thread
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                
-                // If we're presented modally
-                if self.presentingViewController != nil {
-                    self.dismiss(animated: true)
-                }
-                // If we're in a navigation controller
-                else if let navController = self.navigationController {
-                    navController.popViewController(animated: true)
-                }
-                // Fallback
-                else {
-                    self.parent?.dismiss(animated: true)
+        // Find the presenting view controller (should be GameViewController)
+        if let gameVC = self.presentingViewController as? GameViewController {
+            // Dismiss ourselves
+            dismiss(animated: false) {
+                // Create the battle scene directly on the GameViewController's view
+                if let view = gameVC.view as? SKView {
+                    let gameScene = GameScene(size: view.bounds.size)
+                    gameScene.scaleMode = .resizeFill
+                    view.presentScene(gameScene, transition: SKTransition.fade(withDuration: 0.3))
                 }
             }
+        } else {
+            // Fallback to just dismissing
+            dismiss(animated: true)
         }
     }
-    
+
+    // Helper function to ensure transition completes properly
     private func showReturnTransition(completion: @escaping () -> Void) {
         if let skView = view as? SKView, let scene = skView.scene {
             // Create a fade transition
@@ -171,9 +166,9 @@ class EnhancedExplorationViewController: UIViewController {
                 SKAction.fadeIn(withDuration: 0.3)
             ]))
             
-            // Fade out scene
+            // Fade out scene with completion to ensure we continue
             scene.run(SKAction.sequence([
-                SKAction.wait(forDuration: 1.0),
+                SKAction.wait(forDuration: 0.8),
                 fadeOut,
                 SKAction.run {
                     completion()
@@ -184,6 +179,7 @@ class EnhancedExplorationViewController: UIViewController {
             completion()
         }
     }
+    
     
     override var prefersStatusBarHidden: Bool {
         return true

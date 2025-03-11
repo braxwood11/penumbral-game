@@ -16,10 +16,11 @@ class GameViewController: UIViewController {
         super.viewDidLoad()
         
         if let view = self.view as! SKView? {
-            let scene = GameScene(size: view.bounds.size)
-            scene.scaleMode = .resizeFill
+            // Present the start screen instead of directly launching the game
+            let startScreen = StartScreen(size: view.bounds.size)
+            startScreen.scaleMode = .resizeFill
             
-            view.presentScene(scene)
+            view.presentScene(startScreen)
             view.ignoresSiblingOrder = true
             
             #if DEBUG
